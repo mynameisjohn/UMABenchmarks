@@ -16,7 +16,7 @@ programs = []
 
 UMA = False
 Micro = False
-runCount = 1
+runCount = 10
 rerun = 0 != int(sys.argv[1])
 
 print rerun
@@ -97,8 +97,15 @@ def parseIt(ker,mem,dth,htd,api,nme,prg):
 	f.close()
 	return ker,mem,dth,htd,api,nme,prg
 
+def div(ker,mem,dth,htd,api,N):
+	return ker/N,mem/N,dth/N,htd/N,api/N
+
 # wow
-kernel,Memset,DtoH,HtoD,API,names,programs = zip(*[parseIt(ker,mem,dth,htd,api,nme,prg) for ker,mem,dth,htd,api,nme,prg in zip(kernel,Memset,DtoH,HtoD,API,names,programs)])
+for i in range(0,runCount):
+	kernel,Memset,DtoH,HtoD,API,names,programs = zip(*[parseIt(ker,mem,dth,htd,api,nme,prg) for ker,mem,dth,htd,api,nme,prg in zip(kernel,Memset,DtoH,HtoD,API,names,programs)])
+kernel,Memset,DtoH,HtoD,API = zip(*[div(ker,mem,dth,htd,api,float(runCount)) for ker,mem,dth,htd,api in zip(kernel,Memset,DtoH,HtoD,API)])
+
+
 
 '''
 for ker,mem,dth,htd,api,nme,prg in z:
