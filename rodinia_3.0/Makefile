@@ -2,7 +2,12 @@ include common/make.config
 
 RODINIA_BASE_DIR := $(shell pwd)
 
+ifeq ($(UMA),-DUMA)
+CUDA_BIN_DIR := $(RODINIA_BASE_DIR)/bin/linux/cuda_UMA
+else
 CUDA_BIN_DIR := $(RODINIA_BASE_DIR)/bin/linux/cuda
+endif
+
 OMP_BIN_DIR := $(RODINIA_BASE_DIR)/bin/linux/omp
 OPENCL_BIN_DIR := $(RODINIA_BASE_DIR)/bin/linux/opencl
 
