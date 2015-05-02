@@ -83,7 +83,7 @@ def parseIt(ker,mem,dth,htd,api,nme,prg):
 			elif (func.find('DtoH') >= 0):
 				print func + ' has dtoh in it '+str(pct)
 				dth += pct
-			elif (func.find('Memset') >= 0):
+			elif (func.find('memset') >= 0):
 				print func + ' has Memset in it '+str(pct)
 				mem += pct
 			else:
