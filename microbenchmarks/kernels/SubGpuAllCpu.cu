@@ -12,11 +12,10 @@ int main(int argc, char ** argv){
 
 	int N = atoi(argv[1]);
 	int nIt = atoi(argv[2]);
+   int size = sizeof(float)*N;
+   int nT(1024), nB(N/1024+1);
 	if (N < 0 ||nIt < 0)
 		return -2;
-
-	float * h_Data(0), * d_Data(0);
-   int size = sizeof(float)*N;
 
    srand(1);
 
@@ -25,10 +24,22 @@ int main(int argc, char ** argv){
    subset.y = (int)(((float)rand()/(float)RAND_MAX) * N);
    subset.z = (int)(((float)rand()/(float)RAND_MAX) * N);
 
+#ifdef UMA
+	float * data(0);
+   cudaMallocManaged((void **)&data, size);
+
+   for (int i=0; i<nIt; i++){
+      subset_G<<<nB, nT>>>(data, N, subset);
+		cudaDeviceSynchronize();
+      for (int j=0; j<N; j++)
+         data[j]++;
+   }
+
+   free(data);
+#else
+	float * h_Data(0), * d_Data(0);
    h_Data = (float *)malloc(size);
    cudaMalloc((void **)&d_Data, size);
-
-   int nT(1024), nB(N/1024+1);
 
    for (int i=0; i<nIt; i++){
       cudaMemcpy(d_Data, h_Data, size, cudaMemcpyHostToDevice);
@@ -40,6 +51,6 @@ int main(int argc, char ** argv){
 
    free(h_Data);
    cudaFree(d_Data);
-
+#endif
 	return 0;
 }
