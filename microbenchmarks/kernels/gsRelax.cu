@@ -66,6 +66,54 @@ inline void swap(T& a, T& b){
 	b = c;
 }
 
+void relax_UMA(uint32_t N, uint32_t dim, uint32_t nIt, float minRes){
+	//Just a stupid pad
+	while (N%1024) N++;
+	dim = (dim%2 ? 1 : 2);
+	N = (dim==1 ? N : N*N);
+	uint32_t size = sizeof(float)*N;
+	float * data_A(0), * data_B(0);
+	float res(0);
+	
+	cudaMallocManaged((void **)&data_A, size);
+	cudaMallocManaged((void **)&data_B, size);
+
+	makeData(data_A, N);
+	makeData(data_B, N);
+
+	//Repetitive, I know, but I didn't want to introduce overhead during iteration
+	if (dim==1){
+		int nT(1024), nB((N / 1024)/2+1);
+		for (int i=0; i<2*nIt/* && res > minRes*/;){
+			gsRelax_Laplacian1D<<<nB, nT>>>(data_A, data_B, N, i++); 
+			gsRelax_Laplacian1D<<<nB, nT>>>(data_A, data_B, N, i++); 
+			cudaDeviceSynchronize();
+			res = sqrt(getResidueSq(data_A, data_B, N));
+		
+			swap(data_A, data_B);	
+		}
+	}
+	else if (dim==2){
+		uint32_t len = (uint32_t)sqrt(N);
+		dim3 nB, nT;
+		nB.x = (len/32)/2+1; nB.y = (len/32)/2+1;
+		nT.x = 32; nT.y = 32;
+		for (int i=0; i<2*nIt/* && res > minRes*/;){
+			gsRelax_Laplacian2D<<<nB, nT>>>(data_A, data_B, len, i++); 
+			gsRelax_Laplacian2D<<<nB, nT>>>(data_A, data_B, len, i++); 
+			cudaDeviceSynchronize();
+			res = sqrt(getResidueSq(data_A, data_B, N));
+		
+			swap(data_A, data_B);	
+		}
+	}
+
+	printf("%f\n", res);	
+
+	free(data_A);
+	free(data_B);
+}
+
 void relax(uint32_t N, uint32_t dim, uint32_t nIt, float minRes){
 	//Just a stupid pad
 	while (N%1024) N++;
