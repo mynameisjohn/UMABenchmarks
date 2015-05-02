@@ -1,5 +1,3 @@
-#define UMA 0
-
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -184,7 +182,10 @@ int main(int argc, char ** argv){
 //	const uint32_t /*N(2048), */nIt(1000), dim(2);
 	const float minRes(0.1f);
 
+#ifdef UMA
+	relax_UMA(N,dim,nIt,minRes);
+#else
 	relax(N,dim,nIt,minRes);
-
+#endif
 	return 0;
 }

@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.6)
 
 project (MICROBENCHMARK)
 
+add_definitions(-DUMA)
+
 find_package(CUDA QUIET REQUIRED)
 
 include_directories(kernels/)
