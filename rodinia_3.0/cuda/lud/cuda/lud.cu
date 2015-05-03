@@ -138,6 +138,8 @@ main ( int argc, char *argv[] )
   stopwatch_start(&sw);
 
   lud_cuda(m, matrix_dim);
+	cudaDeviceSynchronize();
+//	cudaDeviceSynchronize();
 
   /* end of timing point */
   stopwatch_stop(&sw);
