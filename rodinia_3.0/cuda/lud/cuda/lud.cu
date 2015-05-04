@@ -22,7 +22,8 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <assert.h>
-
+#include <string>
+using std::string;
 #include "common.h"
 
 #ifdef RD_WG_SIZE_0_0
@@ -44,7 +45,24 @@ static struct option long_options[] = {
   {"verify", 0, NULL, 'v'},
   {0,0,0,0}
 };
+//Scoped timing class
+struct CudaStopWatch{
+   string name;
+   cudaEvent_t start, stop;
+   CudaStopWatch(string n) : name(n){
+      cudaEventCreate(&start);
+      cudaEventCreate(&stop);
+      cudaEventRecord(start);
+   }
+   ~CudaStopWatch(){
+      cudaEventRecord(stop);
+      cudaEventSynchronize(stop);
+      float mS(0.f);
+      cudaEventElapsedTime(&mS, start, stop);
 
+      printf("%s took %f mS to execute\n", name.c_str(), mS);
+   }
+};
 extern void
 lud_cuda(float *d_m, int matrix_dim);
 
@@ -58,11 +76,7 @@ main ( int argc, char *argv[] )
   int opt, option_index=0;
   func_ret_t ret;
   const char *input_file = NULL;
-#ifdef UMA
-	float *m, *mm;
-#else
   float *m, *d_m, *mm;
-#endif
   stopwatch sw;
 
   while ((opt = getopt_long(argc, argv, "::vs:i:", 
@@ -131,16 +145,25 @@ main ( int argc, char *argv[] )
   }
 
 #ifdef UMA
-  cudaMallocManaged((void**)&m, 
+  cudaMallocManaged((void**)&d_m, 
              matrix_dim*matrix_dim*sizeof(float));
 
+	// Ideally we would have only dealt with one buffer, 
+	// but it would amount to this before the timer anyhow
+	memcpy(d_m, m, matrix_dim*matrix_dim*sizeof(float));
+
+
+
   /* beginning of timing point */
-  stopwatch_start(&sw);
 
-  lud_cuda(m, matrix_dim);
+{
+	CudaStopWatch CSW("UMA");
+  lud_cuda(d_m, matrix_dim);
 	cudaDeviceSynchronize();
-//	cudaDeviceSynchronize();
 
+	for (int i=0;i<matrix_dim*matrix_dim;i++)
+		d_m[i]=float(i);
+}
   /* end of timing point */
   stopwatch_stop(&sw);
   printf("Time consumed(ms): %lf\n", 1000*get_interval_by_sec(&sw));
@@ -149,7 +172,9 @@ main ( int argc, char *argv[] )
              matrix_dim*matrix_dim*sizeof(float));
 
   /* beginning of timing point */
-  stopwatch_start(&sw);
+//  stopwatch_start(&sw);
+{
+	CudaStopWatch CSW("CUDA");
   cudaMemcpy(d_m, m, matrix_dim*matrix_dim*sizeof(float), 
 	     cudaMemcpyHostToDevice);
 
@@ -157,22 +182,30 @@ main ( int argc, char *argv[] )
 
   cudaMemcpy(m, d_m, matrix_dim*matrix_dim*sizeof(float), 
 	     cudaMemcpyDeviceToHost);
+	for (int i=0;i<matrix_dim*matrix_dim;i++)
+		m[i]=float(i);
+}
 
   /* end of timing point */
   stopwatch_stop(&sw);
   printf("Time consumed(ms): %lf\n", 1000*get_interval_by_sec(&sw));
 
-  cudaFree(d_m);
 #endif
 
   if (do_verify){
     printf("After LUD\n");
     // print_matrix(m, matrix_dim);
     printf(">>>Verify<<<<\n");
-    lud_verify(mm, m, matrix_dim); 
-    free(mm);
+#ifdef UMA
+	lud_verify(mm, d_m, matrix_dim); 
+#else
+	lud_verify(mm, m, matrix_dim); 
+#endif
   }
 
+  if (do_verify)
+    free(mm);
+  cudaFree(d_m);
   free(m);
 
   return EXIT_SUCCESS;

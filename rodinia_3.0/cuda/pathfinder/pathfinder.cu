@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <time.h>
 #include <assert.h>
-
+#include <string>
+using std::string;
 #define BLOCK_SIZE 256
 #define STR_SIZE 256
 #define DEVICE 0
@@ -185,7 +186,24 @@ int main(int argc, char** argv)
 
     return EXIT_SUCCESS;
 }
+//Scoped timing class
+struct CudaStopWatch{
+   string name;
+   cudaEvent_t start, stop;
+   CudaStopWatch(string n) : name(n){
+      cudaEventCreate(&start);
+      cudaEventCreate(&stop);
+      cudaEventRecord(start);
+   }
+   ~CudaStopWatch(){
+      cudaEventRecord(stop);
+      cudaEventSynchronize(stop);
+      float mS(0.f);
+      cudaEventElapsedTime(&mS, start, stop);
 
+      printf("%s took %f mS to execute\n", name.c_str(), mS);
+   }
+};
 void run(int argc, char** argv)
 {
     init(argc, argv);
@@ -209,14 +227,15 @@ void run(int argc, char** argv)
 		 cudaMallocManaged((void**)&gpuWall, sizeof(int)*(size-cols));
 		 memcpy(gpuWall, data+cols, sizeof(int)*(size-cols));//, cudaMemcpyHostToDevice);
 
-
+{
+	CudaStopWatch sw("UMA Timer");
 		 int final_ret = calc_path(gpuWall, gpuResult, rows, cols, \
 		 pyramid_height, blockCols, borderCols);
 		cudaDeviceSynchronize();
-
-		 memcpy(result, gpuResult[final_ret], sizeof(int)*cols);//, cudaMemcpyDeviceToHost);
-
-
+	for (int i=0;i<cols;i++)
+		result[i]=float(i);
+}
+/*
 	#ifdef BENCH_PRINT
 		 for (int i = 0; i < cols; i++)
 					printf("%d ",data[i]) ;
@@ -225,25 +244,28 @@ void run(int argc, char** argv)
 					printf("%d ",result[i]) ;
 		 printf("\n") ;
 	#endif
+*/
 
-
-		 free(gpuWall);
-		 free(gpuResult[0]);
-		 free(gpuResult[1]);
+		 cudaFree(gpuWall);
+		 cudaFree(gpuResult[0]);
+		 cudaFree(gpuResult[1]);
 #else
 		 cudaMalloc((void**)&gpuResult[0], sizeof(int)*cols);
 		 cudaMalloc((void**)&gpuResult[1], sizeof(int)*cols);
-		 cudaMemcpy(gpuResult[0], data, sizeof(int)*cols, cudaMemcpyHostToDevice);
 		 cudaMalloc((void**)&gpuWall, sizeof(int)*(size-cols));
 		 cudaMemcpy(gpuWall, data+cols, sizeof(int)*(size-cols), cudaMemcpyHostToDevice);
+		 cudaMemcpy(gpuResult[0], data, sizeof(int)*cols, cudaMemcpyHostToDevice);
 
-
+{
+	CudaStopWatch sw("CUDA Timer");
 		 int final_ret = calc_path(gpuWall, gpuResult, rows, cols, \
 		 pyramid_height, blockCols, borderCols);
 
 		 cudaMemcpy(result, gpuResult[final_ret], sizeof(int)*cols, cudaMemcpyDeviceToHost);
-
-
+	for (int i=0;i<cols;i++)
+		result[i]=i;
+}
+/*
 	#ifdef BENCH_PRINT
 		 for (int i = 0; i < cols; i++)
 					printf("%d ",data[i]) ;
@@ -252,7 +274,7 @@ void run(int argc, char** argv)
 					printf("%d ",result[i]) ;
 		 printf("\n") ;
 	#endif
-
+*/
 
 		 cudaFree(gpuWall);
 		 cudaFree(gpuResult[0]);
