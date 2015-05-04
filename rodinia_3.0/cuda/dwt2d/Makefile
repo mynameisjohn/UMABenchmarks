@@ -27,7 +27,7 @@ COMMONFLAGS += $(INCLUDES)
 NVCCFLAGS += $(COMMONFLAGS) $(UMA)
 CXXFLAGS += $(COMMONFLAGS)
 CFLAGS += $(COMMONFLAGS) -std=c99 
-LDFLAGS += -L$(CUDA_INSTALL_PATH)/lib64 -lcudart
+LDFLAGS += -L$(CUDA_INSTALL_PATH)/lib -lcudart
 
 # Warning flags (from cuda common.mk)
 CXXWARN_FLAGS := \
