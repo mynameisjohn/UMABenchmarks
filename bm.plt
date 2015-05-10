@@ -1,0 +1,11 @@
+set xrange [0:100];
+set xtics 5;
+set style line 1 lw 6;
+set xlabel 'Percentage of Time Spent in Kernel';
+set ylabel 'UMA Runtime / Traditional Runtime';
+set title 'Normalized Runtimes for UMA Benchmarks';
+plot 'nrmData.txt' using 1:($3/$2) with linespoints lw 2 title 'N=128';
+replot 'nrmData.txt' using 1:($5/$4) with linespoints lw 2 title 'N=256';
+replot 'nrmData.txt' using 1:($7/$6) with linespoints lw 2 title 'N=512';
+replot 'nrmData.txt' using 1:($9/$8) with linespoints lw 2 title 'N=1024';
+replot 1 title 'Normalization Line' with lines lt 2 lc rgb 'black';
