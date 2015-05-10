@@ -15,7 +15,7 @@ dim = str(1)
 programs = []
 
 UMA = False
-Micro = True
+Micro = False
 runCount = int(sys.argv[1])
 rerun = 0 != int(sys.argv[2])
 
