@@ -91,7 +91,7 @@ create_matrix(float *m, int size){
 
 int main(int argc, char *argv[])
 {
-  printf("WG size of kernel 1 = %d, WG size of kernel 2= %d X %d\n", MAXBLOCKSIZE, BLOCK_SIZE_XY, BLOCK_SIZE_XY);
+//  printf("WG size of kernel 1 = %d, WG size of kernel 2= %d X %d\n", MAXBLOCKSIZE, BLOCK_SIZE_XY, BLOCK_SIZE_XY);
     int verbose = 1;
     int i, j;
     char flag;
@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
     struct timeval time_end;
     gettimeofday(&time_end, NULL);
     unsigned int time_total = (time_end.tv_sec * 1000000 + time_end.tv_usec) - (time_start.tv_sec * 1000000 + time_start.tv_usec);
-    
+ /*   
     if (verbose) {
         printf("Matrix m is: \n");
         PrintMat(m, Size, Size);
@@ -181,12 +181,14 @@ int main(int argc, char *argv[])
 
         printf("Array b is: \n");
         PrintAry(b, Size);
-    }
+    }*/
     BackSub();
+/*
     if (verbose) {
         printf("The final solution is: \n");
         PrintAry(finalVec,Size);
     }
+*/
     printf("\nTime total (including memory transfers)\t%f sec\n", time_total * 1e-6);
     printf("Time for CUDA kernels:\t%f sec\n",totalKernelTime * 1e-6);
     
@@ -268,7 +270,7 @@ void InitProblemOnce(char *filename)
 	//printf("The input array b is:\n");
 	//PrintAry(b, Size);
 		
-	cudaMallocManaged((void **)&m, Size * Size * sizeof(float));
+	cudaMalloc((void **)&m, Size * Size * sizeof(float));
 //	 m = (float *) malloc(Size * Size * sizeof(float));
 }
 

@@ -18,7 +18,7 @@ OMP_FLAG = -fopenmp
 
 CUD_C = $(CUDA_DIR)/bin/nvcc
 # OMP_FLAG = 	-Xcompiler paste_one_here
-CUDA_FLAG = -arch sm_20 $(UMA)
+CUDA_FLAG = -arch sm_32
 
 # link objects (binaries) together
 a.out:		main.o \
@@ -32,7 +32,7 @@ a.out:		main.o \
 			./util/timer/timer.o \
 			./util/device/device.o \
 			-lm \
-			-L/usr/local/cuda/lib \
+			-L$(CUDA_LIB_DIR) \
 			-lcuda -lcudart \
 			$(OMP_LIB) \
 			-o lavaMD

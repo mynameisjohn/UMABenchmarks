@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
+#include <sys/time.h>
 #include <assert.h>
 #include <string>
 using std::string;
@@ -9,7 +9,7 @@ using std::string;
 #define DEVICE 0
 #define HALO 1 // halo width along one direction when advancing to the next iteration
 
-#define BENCH_PRINT
+//#define BENCH_PRINT
 
 void run(int argc, char** argv);
 
@@ -175,14 +175,21 @@ int calc_path(int *gpuWall, int *gpuResult[2], int rows, int cols, \
 	}
         return dst;
 }
+double gettime() {
+  struct timeval t;
+  gettimeofday(&t,NULL);
+  return t.tv_sec+t.tv_usec*1e-6;
+}
 
 int main(int argc, char** argv)
 {
     int num_devices;
     cudaGetDeviceCount(&num_devices);
     if (num_devices > 1) cudaSetDevice(DEVICE);
-
+	double now = gettime();
+	for (int i=0; i<100; i++)
     run(argc,argv);
+	printf("%lf\n", gettime()-now);
 
     return EXIT_SUCCESS;
 }
@@ -213,7 +220,7 @@ void run(int argc, char** argv)
     int smallBlockCol = BLOCK_SIZE-(pyramid_height)*HALO*2;
     int blockCols = cols/smallBlockCol+((cols%smallBlockCol==0)?0:1);
 
-    printf("pyramidHeight: %d\ngridSize: [%d]\nborder:[%d]\nblockSize: %d\nblockGrid:[%d]\ntargetBlock:[%d]\n",\
+//    printf("pyramidHeight: %d\ngridSize: [%d]\nborder:[%d]\nblockSize: %d\nblockGrid:[%d]\ntargetBlock:[%d]\n",\
 	pyramid_height, cols, borderCols, BLOCK_SIZE, blockCols, smallBlockCol);
 	
     int *gpuWall, *gpuResult[2];
@@ -228,7 +235,7 @@ void run(int argc, char** argv)
 		 memcpy(gpuWall, data+cols, sizeof(int)*(size-cols));//, cudaMemcpyHostToDevice);
 
 {
-	CudaStopWatch sw("UMA Timer");
+//	CudaStopWatch sw("UMA Timer");
 		 int final_ret = calc_path(gpuWall, gpuResult, rows, cols, \
 		 pyramid_height, blockCols, borderCols);
 		cudaDeviceSynchronize();
@@ -257,7 +264,7 @@ void run(int argc, char** argv)
 		 cudaMemcpy(gpuResult[0], data, sizeof(int)*cols, cudaMemcpyHostToDevice);
 
 {
-	CudaStopWatch sw("CUDA Timer");
+//	CudaStopWatch sw("CUDA Timer");
 		 int final_ret = calc_path(gpuWall, gpuResult, rows, cols, \
 		 pyramid_height, blockCols, borderCols);
 

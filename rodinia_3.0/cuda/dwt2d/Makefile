@@ -24,10 +24,11 @@ include ../../common/make.config
 
 # Common flags
 COMMONFLAGS += $(INCLUDES) 
-NVCCFLAGS += $(COMMONFLAGS) $(UMA)
+NVCCFLAGS += $(COMMONFLAGS)
 CXXFLAGS += $(COMMONFLAGS)
 CFLAGS += $(COMMONFLAGS) -std=c99 
-LDFLAGS += -L$(CUDA_INSTALL_PATH)/lib -lcudart
+LDFLAGS += -L$(CUDA_LIB_DIR) -lcudart
+#-L$(CUDA_INSTALL_PATH)/lib64 -lcudart
 
 # Warning flags (from cuda common.mk)
 CXXWARN_FLAGS := \

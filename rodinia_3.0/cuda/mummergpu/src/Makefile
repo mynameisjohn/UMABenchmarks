@@ -11,7 +11,7 @@ CUDA_INSTALL_PATH := $(CUDA_DIR)
 NVCC       := $(CUDA_INSTALL_PATH)/bin/nvcc 
 CXX        := g++ -fopenmp $(PROFILE)
 CC         := gcc 
-LINK       := g++ -fopenmp -m64 -fPIC $(PROFILE)
+LINK       := g++ -fopenmp -fPIC $(PROFILE)
 
 # Add source files here
 STATIC_LIB := libmummergpu.a
@@ -64,9 +64,9 @@ CWARN_FLAGS := $(CXXWARN_FLAGS) \
 	-Wmain \
 
 # Compiler-specific flags
-NVCCFLAGS := -Xcompiler "-m64"
-CXXFLAGS  := -m64 $(CXXWARN_FLAGS)
-CFLAGS    := -m64 $(CWARN_FLAGS)
+NVCCFLAGS := -Xcompiler #"-m64"
+CXXFLAGS  := #-m64 $(CXXWARN_FLAGS)
+CFLAGS    := #-m64 $(CWARN_FLAGS)
 
 # Common flags
 COMMONFLAGS ?= 

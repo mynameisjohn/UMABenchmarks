@@ -2,7 +2,7 @@ include ../../common/make.config
 
 NVCC = $(CUDA_DIR)/bin/nvcc
 
-NVCC_FLAGS = -I$(CUDA_DIR)/include $(UMA)
+NVCC_FLAGS = -I$(CUDA_DIR)/include
 
 TARGET_G = sc_gpu
 
@@ -21,7 +21,7 @@ endif
 
 # make dp=1 compiles the CUDA kernels with double-precision support
 ifeq ($(dp),1)
-	NVCC_FLAGS += --gpu-name sm_20
+	NVCC_FLAGS += --gpu-name sm_13
 endif
 
 

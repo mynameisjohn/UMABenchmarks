@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <CudaStopWatch.h>
+
 /******
 	TODO:
 		Handle different problem sizes more elegantly
@@ -81,6 +83,7 @@ void relax_UMA(uint32_t N, uint32_t dim, uint32_t nIt, float minRes){
 
 	//Repetitive, I know, but I didn't want to introduce overhead during iteration
 	if (dim==1){
+		CudaStopWatch CSW("UMA");
 		int nT(1024), nB((N / 1024)/2+1);
 		for (int i=0; i<2*nIt/* && res > minRes*/;){
 			gsRelax_Laplacian1D<<<nB, nT>>>(data_A, data_B, N, i++); 
@@ -92,6 +95,7 @@ void relax_UMA(uint32_t N, uint32_t dim, uint32_t nIt, float minRes){
 		}
 	}
 	else if (dim==2){
+		CudaStopWatch CSW("UMA");
 		uint32_t len = (uint32_t)sqrt(N);
 		dim3 nB, nT;
 		nB.x = (len/32)/2+1; nB.y = (len/32)/2+1;
@@ -104,12 +108,13 @@ void relax_UMA(uint32_t N, uint32_t dim, uint32_t nIt, float minRes){
 		
 			swap(data_A, data_B);	
 		}
+		cudaDeviceSynchronize();
 	}
 
 	printf("%f\n", res);	
 
-	free(data_A);
-	free(data_B);
+	cudaFree(data_A);
+	cudaFree(data_B);
 }
 
 void relax(uint32_t N, uint32_t dim, uint32_t nIt, float minRes){
@@ -130,6 +135,7 @@ void relax(uint32_t N, uint32_t dim, uint32_t nIt, float minRes){
 
 	//Repetitive, I know, but I didn't want to introduce overhead during iteration
 	if (dim==1){
+		CudaStopWatch CSW("UMA");
 		int nT(1024), nB((N / 1024)/2+1);
 		for (int i=0; i<2*nIt/* && res > minRes*/;){
 			cudaMemcpy(d_Data_A, h_Data_A, size, cudaMemcpyHostToDevice);
@@ -145,6 +151,7 @@ void relax(uint32_t N, uint32_t dim, uint32_t nIt, float minRes){
 		}
 	}
 	else if (dim==2){
+		CudaStopWatch CSW("CUDA");
 		uint32_t len = (uint32_t)sqrt(N);
 		dim3 nB, nT;
 		nB.x = (len/32)/2+1; nB.y = (len/32)/2+1;
@@ -163,8 +170,6 @@ void relax(uint32_t N, uint32_t dim, uint32_t nIt, float minRes){
 		}
 	}
 
-	printf("%f\n", res);	
-
 	free(h_Data_A);
 	free(h_Data_B);
 	cudaFree(d_Data_A);
@@ -182,10 +187,12 @@ int main(int argc, char ** argv){
 //	const uint32_t /*N(2048), */nIt(1000), dim(2);
 	const float minRes(0.1f);
 
-#ifdef UMA
+	printf("Problem size of %d, dimension %d\n", N, dim);
+//#ifdef UMA
 	relax_UMA(N,dim,nIt,minRes);
-#else
+//#else
 	relax(N,dim,nIt,minRes);
-#endif
+//#endif
+	printf("\n\n");
 	return 0;
 }

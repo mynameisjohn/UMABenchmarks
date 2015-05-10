@@ -47,7 +47,7 @@ double gettime() {
   gettimeofday(&t,NULL);
   return t.tv_sec+t.tv_usec*1e-6;
 }
-
+#include <CudaStopWatch.h>
 ////////////////////////////////////////////////////////////////////////////////
 // Program main
 ////////////////////////////////////////////////////////////////////////////////
@@ -55,9 +55,15 @@ int
 main( int argc, char** argv) 
 {
 
-  printf("WG size of kernel = %d \n", BLOCK_SIZE);
-
+//  printf("WG size of kernel = %d \n", BLOCK_SIZE);
+	printf("Problem size %d %d", atoi(argv[1]), atoi(argv[2]));
+//	CudaStopWatch CSW("UMA");
+	double now = gettime();
+	for (int i=0; i<100; i++)
     runTest( argc, argv);
+	printf("%lf\n", gettime()-now);
+
+//    runTest( argc, argv);
 
     return EXIT_SUCCESS;
 }
@@ -117,7 +123,7 @@ void runTest( int argc, char** argv)
 		}
 	}
 	
-	printf("Start Needleman-Wunsch\n");
+//	printf("Start Needleman-Wunsch\n");
 	
 	for( int i=1; i< max_rows ; i++){    //please define your own sequence. 
        itemsets[i*max_cols] = rand() % 10 + 1;
@@ -151,7 +157,7 @@ void runTest( int argc, char** argv)
 	dim3 dimBlock(BLOCK_SIZE, 1);
 	int block_width = ( max_cols - 1 )/BLOCK_SIZE;
 
-	printf("Processing top-left matrix\n");
+	//printf("Processing top-left matrix\n");
 	//process top-left matrix
 	for( int i = 1 ; i <= block_width ; i++){
 		dimGrid.x = i;
@@ -159,7 +165,7 @@ void runTest( int argc, char** argv)
 		needle_cuda_shared_1<<<dimGrid, dimBlock>>>(referrence, itemsets
 		                                      ,max_cols, penalty, i, block_width); 
 	}
-	printf("Processing bottom-right matrix\n");
+	//printf("Processing bottom-right matrix\n");
     //process bottom-right matrix
 	for( int i = block_width - 1  ; i >= 1 ; i--){
 		dimGrid.x = i;

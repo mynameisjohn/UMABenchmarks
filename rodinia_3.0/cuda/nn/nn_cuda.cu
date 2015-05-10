@@ -9,7 +9,6 @@
 #include <float.h>
 #include <vector>
 #include "cuda.h"
-#include <string>
 
 #define min( a, b )			a > b ? b : a
 #define ceilDiv( a, b )		( a + b - 1 ) / b
@@ -57,24 +56,6 @@ __global__ void euclid(LatLong *d_locations, float *d_distances, int numRecords,
         *dist = (float)sqrt((lat-latLong->lat)*(lat-latLong->lat)+(lng-latLong->lng)*(lng-latLong->lng));
 	}
 }
-//Scoped timing class
-struct CudaStopWatch{
-   std::string name;
-   cudaEvent_t start, stop;
-   CudaStopWatch(std::string n) : name(n){
-      cudaEventCreate(&start);
-      cudaEventCreate(&stop);
-      cudaEventRecord(start);
-   }
-   ~CudaStopWatch(){
-      cudaEventRecord(stop);
-      cudaEventSynchronize(stop);
-      float mS(0.f);
-      cudaEventElapsedTime(&mS, start, stop);
-
-      printf("%s took %f mS to execute\n", name.c_str(), mS);
-   }
-};
 
 /**
 * This program finds the k-nearest neighbors
@@ -105,6 +86,11 @@ int main(int argc, char* argv[])
     //  printf("%s, %f, %f\n",(records[i].recString),locations[i].lat,locations[i].lng);
 
 
+    //Pointers to host memory
+	float *distances;
+	//Pointers to device memory
+	LatLong *d_locations;
+	float *d_distances;
 
 
 	// Scaling calculations - added by Sam Kauffman
@@ -147,59 +133,15 @@ int main(int argc, char* argv[])
 	/**
 	* Allocate memory on host and device
 	*/
-#ifdef UMA
-    //Pointers to host memory
-	float *distances;
-	//Pointers to device memory
-	LatLong *d_locations;
-	cudaMallocManaged((void **) &d_locations,sizeof(LatLong) * numRecords);
-	cudaMallocManaged((void **) &distances,sizeof(float) * numRecords);
-
-   /**
-    * Transfer data from host to device
-    */
-    memcpy( d_locations, &locations[0], sizeof(LatLong) * numRecords);//, cudaMemcpyHostToDevice);
-    /**
-    * Execute kernel
-    */
-{
-	CudaStopWatch CSW("UMA");
-    euclid<<< gridDim, threadsPerBlock >>>(d_locations,distances,numRecords,lat,lng);
-    cudaThreadSynchronize();
-	cudaDeviceSynchronize();
-	for (int i =0; i<numRecords;i++)
-		distances[i] = float(i);
-}
-    //Copy data from device memory to host memory
-//    memcpy( distances, d_distances, sizeof(float)*numRecords);//, cudaMemcpyDeviceToHost );
-
-	// find the resultsCount least distances
-    findLowest(records,distances,numRecords,resultsCount);
-
-    // print out results
-    if (!quiet)
-    for(i=0;i<resultsCount;i++) {
-      printf("%s --> Distance=%f\n",records[i].recString,records[i].distance);
-    }
-    cudaFree(distances);
-    //Free memory
-	cudaFree(d_locations);
-#else
-    //Pointers to host memory
-	float *distances;
-	//Pointers to device memory
-	LatLong *d_locations;
-	float *d_distances;
 	distances = (float *)malloc(sizeof(float) * numRecords);
 	cudaMalloc((void **) &d_locations,sizeof(LatLong) * numRecords);
 	cudaMalloc((void **) &d_distances,sizeof(float) * numRecords);
 
-{
-CudaStopWatch CSW("CUDA");
    /**
     * Transfer data from host to device
     */
     cudaMemcpy( d_locations, &locations[0], sizeof(LatLong) * numRecords, cudaMemcpyHostToDevice);
+
     /**
     * Execute kernel
     */
@@ -208,9 +150,7 @@ CudaStopWatch CSW("CUDA");
 
     //Copy data from device memory to host memory
     cudaMemcpy( distances, d_distances, sizeof(float)*numRecords, cudaMemcpyDeviceToHost );
-	for (int i =0; i<numRecords;i++)
-		distances[i] = float(i);
-}
+
 	// find the resultsCount least distances
     findLowest(records,distances,numRecords,resultsCount);
 
@@ -223,7 +163,6 @@ CudaStopWatch CSW("CUDA");
     //Free memory
 	cudaFree(d_locations);
 	cudaFree(d_distances);
-#endif
 
 }
 

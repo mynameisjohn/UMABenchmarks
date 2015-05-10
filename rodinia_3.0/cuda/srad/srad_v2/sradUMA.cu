@@ -4,12 +4,17 @@
 #include <string.h>
 #include <math.h>
 #include "srad.h"
-
+#include <sys/time.h>
 // includes, project
 #include <cuda.h>
 
 // includes, kernels
 #include "srad_kernel.cu"
+double gettime() {
+  struct timeval t;
+  gettimeofday(&t,NULL);
+  return t.tv_sec+t.tv_usec*1e-6;
+}
 
 void random_matrix(float *I, int rows, int cols);
 void runTest( int argc, char** argv);
@@ -27,14 +32,20 @@ void usage(int argc, char **argv)
 	
 	exit(1);
 }
+#include <CudaStopWatch.h>
 ////////////////////////////////////////////////////////////////////////////////
 // Program main
 ////////////////////////////////////////////////////////////////////////////////
 int
 main( int argc, char** argv) 
 {
-  printf("WG size of kernel = %d X %d\n", BLOCK_SIZE, BLOCK_SIZE);
+//  printf("WG size of kernel = %d X %d\n", BLOCK_SIZE, BLOCK_SIZE);
+  //  runTest( argc, argv);
+	printf("Problem size %d %d\n", atoi(argv[1]), atoi(argv[2]));
+	double now = gettime();
+	for (int i=0; i<100; i++)
     runTest( argc, argv);
+	printf("%lf\n", gettime()-now);
 
     return EXIT_SUCCESS;
 }
@@ -84,8 +95,8 @@ runTest( int argc, char** argv)
 	size_I = cols * rows;
     size_R = (r2-r1+1)*(c2-c1+1);   
 
-//	I = (float *)malloc( size_I * sizeof(float) );
-	cudaMallocManaged((void **)&I,  size_I * sizeof(float));
+	I = (float *)malloc( size_I * sizeof(float) );
+//	cudaMallocManaged((void **)&I,  size_I * sizeof(float));
 	cudaMallocManaged((void **)&J,  size_I * sizeof(float));
     //J = (float *)malloc( size_I * sizeof(float) );
 //	c  = (float *)malloc(sizeof(float)* size_I) ;
@@ -94,23 +105,23 @@ runTest( int argc, char** argv)
 
 	//Allocate device memory
 //    cudaMallocManaged((void**)& J_cuda, sizeof(float)* size_I);
-    cudaMallocManaged((void**)& C_cuda, sizeof(float)* size_I);
-	cudaMallocManaged((void**)& E_C, sizeof(float)* size_I);
-	cudaMallocManaged((void**)& W_C, sizeof(float)* size_I);
-	cudaMallocManaged((void**)& S_C, sizeof(float)* size_I);
-	cudaMallocManaged((void**)& N_C, sizeof(float)* size_I);
+    cudaMalloc((void**)& C_cuda, sizeof(float)* size_I);
+	cudaMalloc((void**)& E_C, sizeof(float)* size_I);
+	cudaMalloc((void**)& W_C, sizeof(float)* size_I);
+	cudaMalloc((void**)& S_C, sizeof(float)* size_I);
+	cudaMalloc((void**)& N_C, sizeof(float)* size_I);
 
 	
 #endif 
 
-	printf("Randomizing the input matrix\n");
+//	printf("Randomizing the input matrix\n");
 	//Generate a random matrix
 	random_matrix(I, rows, cols);
 
     for (int k = 0;  k < size_I; k++ ) {
      	J[k] = (float)exp(I[k]) ;
     }
-	printf("Start the SRAD main loop\n");
+//	printf("Start the SRAD main loop\n");
  for (iter=0; iter< niter; iter++){     
 		sum=0; sum2=0;
         for (int i=r1; i<=r2; i++) {
@@ -161,9 +172,9 @@ runTest( int argc, char** argv)
    }
 #endif 
 
-	printf("Computation Done\n");
+//	printf("Computation Done\n");
 
-	cudaFree(I);
+	free(I);
 	cudaFree(J);
 #ifdef GPU
     cudaFree(C_cuda);

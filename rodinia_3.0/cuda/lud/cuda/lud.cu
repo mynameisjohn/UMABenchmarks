@@ -22,8 +22,7 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <string>
-using std::string;
+
 #include "common.h"
 
 #ifdef RD_WG_SIZE_0_0
@@ -33,7 +32,7 @@ using std::string;
 #elif defined(RD_WG_SIZE)
         #define BLOCK_SIZE RD_WG_SIZE
 #else
-        #define BLOCK_SIZE 16
+        #define BLOCK_SIZE 32
 #endif
 
 static int do_verify = 0;
@@ -45,24 +44,7 @@ static struct option long_options[] = {
   {"verify", 0, NULL, 'v'},
   {0,0,0,0}
 };
-//Scoped timing class
-struct CudaStopWatch{
-   string name;
-   cudaEvent_t start, stop;
-   CudaStopWatch(string n) : name(n){
-      cudaEventCreate(&start);
-      cudaEventCreate(&stop);
-      cudaEventRecord(start);
-   }
-   ~CudaStopWatch(){
-      cudaEventRecord(stop);
-      cudaEventSynchronize(stop);
-      float mS(0.f);
-      cudaEventElapsedTime(&mS, start, stop);
 
-      printf("%s took %f mS to execute\n", name.c_str(), mS);
-   }
-};
 extern void
 lud_cuda(float *d_m, int matrix_dim);
 
@@ -76,7 +58,7 @@ main ( int argc, char *argv[] )
   int opt, option_index=0;
   func_ret_t ret;
   const char *input_file = NULL;
-  float *m, *d_m, *mm;
+  float *m/*, *d_m*/, *mm;
   stopwatch sw;
 
   while ((opt = getopt_long(argc, argv, "::vs:i:", 
@@ -113,9 +95,14 @@ main ( int argc, char *argv[] )
     exit(EXIT_FAILURE);
   }
 
+	float * tmp(0);
+
   if (input_file) {
     printf("Reading matrix from file %s\n", input_file);
-    ret = create_matrix_from_file(&m, input_file, &matrix_dim);
+    ret = create_matrix_from_file(&tmp, input_file, &matrix_dim);
+	cudaMallocManaged((void **)&m, sizeof(float)*matrix_dim*matrix_dim);
+	memcpy(m, tmp, sizeof(float)*matrix_dim*matrix_dim);
+	free(tmp);
     if (ret != RET_SUCCESS) {
       m = NULL;
       fprintf(stderr, "error create matrix from file %s\n", input_file);
@@ -124,7 +111,10 @@ main ( int argc, char *argv[] )
   } 
   else if (matrix_dim) {
     printf("Creating matrix internally size=%d\n", matrix_dim);
-    ret = create_matrix(&m, matrix_dim);
+    ret = create_matrix(&tmp, matrix_dim);
+	cudaMallocManaged((void **)&m, sizeof(float)*matrix_dim*matrix_dim);
+	memcpy(m, tmp, sizeof(float)*matrix_dim*matrix_dim);
+	free(tmp);
     if (ret != RET_SUCCESS) {
       m = NULL;
       fprintf(stderr, "error create matrix internally size=%d\n", matrix_dim);
@@ -141,72 +131,42 @@ main ( int argc, char *argv[] )
   if (do_verify){
     printf("Before LUD\n");
     // print_matrix(m, matrix_dim);
-    matrix_duplicate(m, &mm, matrix_dim);
+    matrix_duplicate(m, &tmp, matrix_dim);
+	cudaMallocManaged((void **)&mm, sizeof(float)*matrix_dim*matrix_dim);
+	memcpy(mm, tmp, sizeof(float)*matrix_dim*matrix_dim);
+	free(tmp);
   }
-
-#ifdef UMA
-  cudaMallocManaged((void**)&d_m, 
+/*
+  cudaMaliloc((void**)&d_m, 
              matrix_dim*matrix_dim*sizeof(float));
-
-	// Ideally we would have only dealt with one buffer, 
-	// but it would amount to this before the timer anyhow
-	memcpy(d_m, m, matrix_dim*matrix_dim*sizeof(float));
-
-
-
+*/
   /* beginning of timing point */
+  stopwatch_start(&sw);
+  //cudaMemcpy(d_m, m, matrix_dim*matrix_dim*sizeof(float), 
+//	     cudaMemcpyHostToDevice);
 
-{
-	CudaStopWatch CSW("UMA");
-  lud_cuda(d_m, matrix_dim);
+  lud_cuda(m, matrix_dim);
+
+  //cudaMemcpy(m, d_m, matrix_dim*matrix_dim*sizeof(float), 
+//	     cudaMemcpyDeviceToHost);
 	cudaDeviceSynchronize();
 
-	for (int i=0;i<matrix_dim*matrix_dim;i++)
-		d_m[i]=float(i);
-}
-  /* end of timing point */
-  stopwatch_stop(&sw);
-  printf("Time consumed(ms): %lf\n", 1000*get_interval_by_sec(&sw));
-#else
-  cudaMalloc((void**)&d_m, 
-             matrix_dim*matrix_dim*sizeof(float));
-
-  /* beginning of timing point */
-//  stopwatch_start(&sw);
-{
-	CudaStopWatch CSW("CUDA");
-  cudaMemcpy(d_m, m, matrix_dim*matrix_dim*sizeof(float), 
-	     cudaMemcpyHostToDevice);
-
-  lud_cuda(d_m, matrix_dim);
-
-  cudaMemcpy(m, d_m, matrix_dim*matrix_dim*sizeof(float), 
-	     cudaMemcpyDeviceToHost);
-	for (int i=0;i<matrix_dim*matrix_dim;i++)
-		m[i]=float(i);
-}
-
   /* end of timing point */
   stopwatch_stop(&sw);
   printf("Time consumed(ms): %lf\n", 1000*get_interval_by_sec(&sw));
 
-#endif
+//  cudaFree(d_m);
+
 
   if (do_verify){
     printf("After LUD\n");
     // print_matrix(m, matrix_dim);
     printf(">>>Verify<<<<\n");
-#ifdef UMA
-	lud_verify(mm, d_m, matrix_dim); 
-#else
-	lud_verify(mm, m, matrix_dim); 
-#endif
+    lud_verify(mm, m, matrix_dim); 
+    cudaFree(mm);
   }
 
-  if (do_verify)
-    free(mm);
-  cudaFree(d_m);
-  free(m);
-
+//  free(m);
+	cudaFree(m);
   return EXIT_SUCCESS;
 }				/* ----------  end of function main  ---------- */

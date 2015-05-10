@@ -1,3 +1,5 @@
+#include <CudaStopWatch.h>
+
 __global__
 void subset_G_Rand(float * in, float * out, int N, float thresh){
    int idx = threadIdx.x+blockDim.x*blockIdx.x;
@@ -27,8 +29,8 @@ int main(int argc, char ** argv){
    if (thresh < 0)
       thresh = (float)rand()/(float)RAND_MAX;
 
-#ifdef UMA
-	float * in(0), * out(0);
+{
+/*	float * in(0), * out(0);
    cudaMallocManaged((void **)&in, size);
    cudaMallocManaged((void **)&out, size);
 
@@ -36,7 +38,8 @@ int main(int argc, char ** argv){
       in[j] = (float)rand()/(float)RAND_MAX;
       out[j] = (float)rand()/(float)RAND_MAX;
    }
-
+{
+	CudaStopWatch CSW("UMA");
    for (int i=0; i<nIt; i++){
       subset_G_Rand<<<nB, nT>>>(in, out, N, thresh);
 		cudaDeviceSynchronize();
@@ -45,10 +48,12 @@ int main(int argc, char ** argv){
          out[j]++;
       }
    }
-
-   free(in);
-   free(out);
-#else
+}
+   cudaFree(in);
+   cudaFree(out);
+*/
+}
+{
 	float * h_In(0), * h_Out(0), * d_In(0), * d_Out(0);
    h_In = (float *)malloc(size);
    h_Out = (float *)malloc(size);
@@ -59,7 +64,8 @@ int main(int argc, char ** argv){
       h_In[j] = (float)rand()/(float)RAND_MAX;
       h_Out[j] = (float)rand()/(float)RAND_MAX;
    }
-
+{
+	CudaStopWatch CSW("CUDA");
    for (int i=0; i<nIt; i++){
       cudaMemcpy(d_In, h_In, size, cudaMemcpyHostToDevice);
       cudaMemcpy(d_Out, h_Out, size, cudaMemcpyHostToDevice);
@@ -71,11 +77,11 @@ int main(int argc, char ** argv){
          h_Out[j]++;
       }
    }
-
+}
    free(h_In);
    free(h_Out);
    cudaFree(d_In);
    cudaFree(d_Out);
-#endif
+}
 	return 0;
 }

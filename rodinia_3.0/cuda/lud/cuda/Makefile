@@ -1,5 +1,5 @@
 CC = gcc
-NVCC = nvcc
+NVCC = nvcc $(UMA)
 
 DEFS += \
 		-DGPU_TIMER \
@@ -8,9 +8,8 @@ DEFS += \
 NVCCFLAGS += -I../common \
 			 -O3 \
 			 -use_fast_math \
-			 -arch=sm_20 \
+			 -arch=sm_32 \
 			 -lm \
-			 $(UMA) \
 			 $(SPACE)
 
 CFLAGS += -I../common \

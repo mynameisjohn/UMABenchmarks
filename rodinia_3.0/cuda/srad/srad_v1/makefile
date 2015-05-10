@@ -1,6 +1,6 @@
 include ../../../common/make.config
 
-CC := $(CUDA_DIR)/bin/nvcc $(UMA)
+CC := $(CUDA_DIR)/bin/nvcc
 
 INCLUDE := $(CUDA_DIR)/include
 
@@ -31,7 +31,7 @@ main.o: 	main.cu \
 				srad2_kernel.cu \
 				compress_kernel.cu
 	nvcc	main.cu \
-				-c -O3 -arch sm_20
+				-c -O3 -arch sm_32
 
 # delete all object files
 clean:

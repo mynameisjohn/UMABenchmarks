@@ -15,21 +15,21 @@ dim = str(1)
 programs = []
 
 UMA = False
-Micro = False
-runCount = 10
-rerun = 0 != int(sys.argv[1])
+Micro = True
+runCount = int(sys.argv[1])
+rerun = 0 != int(sys.argv[2])
 
 print rerun
 
 if (Micro):
-	exe_dir = './symlink/'
+	exe_dir = './microbenchmarks/bin/'
 	programs.append([exe_dir+'gsRelax', N, nIt, dim])
-	programs.append([exe_dir+'AllGpuAllCpu', N, nIt])
-	programs.append([exe_dir+'AllGpuSubCpu', N, nIt])
-	programs.append([exe_dir+'SubGpuAllCpu', N, nIt])
+#	programs.append([exe_dir+'AllGpuAllCpu', N, nIt])
+#	programs.append([exe_dir+'AllGpuSubCpu', N, nIt])
+#	programs.append([exe_dir+'SubGpuAllCpu', N, nIt])
 	programs.append([exe_dir+'SubGpuAllCpu_r', N, nIt])
 else:
-	exe_dir = './symlink/rodinia/'
+	exe_dir = './rodinia_3.0/bin/linux/cuda/'
 	rod_data_dir = 'rodinia_3.0/data'
 	programs.append([exe_dir+'backprop 65536'])
 	programs.append([exe_dir+'bfs '+rod_data_dir+'/bfs/graph1MW_6.txt'])
@@ -60,7 +60,7 @@ API = [0.]*len(programs)
 names = ['']*len(programs)
 
 def parseIt(ker,mem,dth,htd,api,nme,prg):
-	nme = prg[0].split('/')[3].split()[0]
+	nme = prg[0].split('/')[3].split()[0] if Micro else prg[0].split('/')[5].split()[0]
 	print nme+'\n'
 	cmd = 'nvprof --profile-api-trace none --log-file output/'+nme+'.dat '+' '.join(prg)
 	print cmd+'\n'
@@ -78,35 +78,47 @@ def parseIt(ker,mem,dth,htd,api,nme,prg):
 		func = ''.join(data[6:])
 		if (func.find('CUDA') >= 0 and func.find('[') >= 0 and func.find(']') >= 0):
 			if (func.find('HtoD') >= 0):
-				print func + ' has htod in it '+str(pct)
+#				print func + ' has htod in it '+str(pct)
 				htd += pct
 			elif (func.find('DtoH') >= 0):
-				print func + ' has dtoh in it '+str(pct)
+#				print func + ' has dtoh in it '+str(pct)
 				dth += pct
 			elif (func.find('memset') >= 0):
-				print func + ' has Memset in it '+str(pct)
+#				print func + ' has Memset in it '+str(pct)
 				mem += pct
 			else:
-				print func + ' has apic in it '+str(pct)
+#				print func + ' has apic in it '+str(pct)
 				api += pct
 		else:
-			print func + ' has kernel in it '+str(pct)
+#			print func + ' has kernel in it '+str(pct)
 			ker += pct
-	print nme
-	print '\n\n'
+#	print nme
+#	print '\n\n'
 	f.close()
 	return ker,mem,dth,htd,api,nme,prg
 
 def div(ker,mem,dth,htd,api,N):
 	return ker/N,mem/N,dth/N,htd/N,api/N
 
+def plotIt(ker,mem,dth,htd,api,nme):
+	fileName = '.dat'
+	if (Micro):
+		fileName = 'microbenchmarks'+fileName
+	else:
+		fileName = 'rodinia'+fileName
+	print nme+' '+str(ker)+' '+str(mem)+' '+str(dth)+' '+str(htd)+' '+str(api)
+
 # wow
 for i in range(0,runCount):
 	kernel,Memset,DtoH,HtoD,API,names,programs = zip(*[parseIt(ker,mem,dth,htd,api,nme,prg) for ker,mem,dth,htd,api,nme,prg in zip(kernel,Memset,DtoH,HtoD,API,names,programs)])
+
 kernel,Memset,DtoH,HtoD,API = zip(*[div(ker,mem,dth,htd,api,float(runCount)) for ker,mem,dth,htd,api in zip(kernel,Memset,DtoH,HtoD,API)])
 
-
-
+f = open('prof.dat','w')
+f.write('# Name kernel mem DtoH HtoD API\n')
+for ker,mem,dth,htd,api,nme in zip(kernel,Memset,DtoH,HtoD,API,names):
+	f.write(nme+' '+str(ker)+' '+str(mem)+' '+str(dth)+' '+str(htd)+' '+str(api)+'\n')
+f.close()
 '''
 for ker,mem,dth,htd,api,nme,prg in z:
 	ker /= float(runCount)
@@ -114,7 +126,6 @@ for ker,mem,dth,htd,api,nme,prg in z:
 	dth /= float(runCount)
 	htd /= float(runCount)
 	api /= float(runCount)
-'''
 ind = np.arange(len(names))
 width=0.3
 
@@ -122,6 +133,7 @@ b1 = np.add(np.float32(HtoD),np.float32(DtoH))
 b2 = np.add(np.float32(b1), np.float32(Memset))
 b3 = np.add(np.float32(b2), np.float32(API))
 
+print 'DONE WITH EXECUTION'
 p1 = plt.bar(ind, HtoD, width, color='#ff0000')
 p2 = plt.bar(ind, DtoH, width, bottom=HtoD, color='#00ff00')
 p3 = plt.bar(ind, Memset, width, bottom=b1, color='#0000ff')
@@ -133,3 +145,4 @@ plt.yticks(np.arange(0,135,10))
 plt.legend( (p1[0], p2[0], p3[0], p4[0], p5[0]), ('HtoD', 'DtoH', 'Memset', 'API', 'kernel') )
 
 plt.show()
+'''
