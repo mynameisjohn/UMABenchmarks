@@ -13,8 +13,8 @@ set title "Distribution of Runtime"
 set ytics 10
  
 plot 'prof.dat' using \
-	2 t "Kernel", \
-	'' using 3 t "Mem", \
-	'' using 4:xtic(1) t "HtoD", \
-	'' using 5:xtic(1) t "DtoH", \
-	'' using 6:xtic(1) t "API"
+	2 t "Kernel" lc rgb '#0066CC#0066FF', \
+	'' using 3 t "Mem" lc rgb '#0066FF', \
+	'' using 4:xtic(1) t "HtoD" lc rgb '#FF3300', \
+	'' using 5:xtic(1) t "DtoH" lc rgb '#33CC33', \
+	'' using 6:xtic(1) t "API" lc rgb '#009933'
