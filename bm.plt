@@ -7,6 +7,8 @@ set xtics add ("gsRelax \n46.068" 46.068)
 set xtics add ("srad_v2 \n62.658" 62.658)
 set xtics add ("gaussian \n78.28" 78.28)
 set xtics add ("lud_cuda \n 96.094" 96.094)
+set yrange [0:2.5]
+set ytics 0.1
 set style line 1 lw 6;
 set xlabel 'Percentage of Time Spent in Kernel' offset 0,-1;
 set ylabel 'UMA Runtime / Traditional Runtime';
