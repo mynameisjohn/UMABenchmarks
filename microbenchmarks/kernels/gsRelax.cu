@@ -77,7 +77,6 @@ void gsRelax_Laplacian1D_even( float * in, float * out, uint32_t N)
 	{
 		float sum = in[idx - 1] + in[idx + 1];
 		out[idx] = 0.5f * sum;
-		out[idx] = float( idx );
 	}
 }
 
@@ -90,7 +89,6 @@ void gsRelax_Laplacian1D_odd( float * in, float * out, uint32_t N )
 	{
 		float sum = in[idx - 1] + in[idx + 1];
 		out[idx] = 0.5f * sum;
-		out[idx] = float( idx );
 	}
 }
 
