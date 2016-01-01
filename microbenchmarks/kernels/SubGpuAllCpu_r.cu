@@ -1,4 +1,4 @@
-#include <CudaStopWatch.h>
+#include "util.h"
 
 __global__
 void subset_G_Rand(float * in, float * out, int N, float thresh){

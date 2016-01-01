@@ -1,3 +1,30 @@
+#include <cuda_runtime.h>
+#include <string>
+class CudaStopWatch
+{
+	std::string name;
+	cudaEvent_t start, stop;
+public:
+	CudaStopWatch( std::string n ) :
+		name( n )
+	{
+		cudaEventCreate( &start );
+		cudaEventCreate( &stop );
+		cudaEventRecord( start );
+	}
+
+	~CudaStopWatch()
+	{
+		cudaEventRecord( stop );
+		cudaEventSynchronize( stop );
+
+		// Print out the elapsed time
+		float mS( 0.f );
+		cudaEventElapsedTime( &mS, start, stop );
+		printf( "%s took %f mS to execute\n", name.c_str(), mS );
+	}
+};
+
 template <typename T>
 T min(T a, T b){
    return (a < b ? a : b);
