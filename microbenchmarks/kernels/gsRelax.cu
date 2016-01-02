@@ -2,16 +2,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../util.h"
-
 #include <cuda_profiler_api.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
-#include <cuda_occupancy.h>
+
+
+#include "../util.h"
+#include "microbenchmarks.h"
 
 const float minRes( 0.1f );
-int g_NumThreads( 0 ), g_NumBlocks( 0 ), g_MinNumBlocks( 0 );
+inline unsigned int sqrtToInt( int i )
+{
+	return (unsigned int) ( sqrt( i + 0.1 ) );
+}
 
 __inline__ __host__ __device__
 uint32_t get2Didx( uint32_t x, uint32_t y, uint32_t N )
@@ -42,7 +46,6 @@ void gsRelax_Laplacian2D_even( float * in, float * out, uint32_t N )
 		out[idx] = 0.25f * sum;
 	}
 }
-
 
 __global__
 void gsRelax_Laplacian2D_odd( float * in, float * out, uint32_t N )
@@ -109,7 +112,7 @@ void makeData( float * data, uint32_t N )
 }
 
 
-float relax_UMA( uint32_t N, uint32_t dim, uint32_t nIt )
+float RelaxFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 {
 	// Create timing objects, do not start
 	float timeTaken( 0 );
@@ -126,6 +129,9 @@ float relax_UMA( uint32_t N, uint32_t dim, uint32_t nIt )
 	cudaMallocManaged( (void **) &d_Data_A, size );
 	cudaMallocManaged( (void **) &d_Data_B, size );
 
+	// Get max occupancy values
+	LaunchParams occ = GetBestOccupancy( dim == 2 ? gsRelax_Laplacian1D_even : gsRelax_Laplacian2D_even, N );
+
 	// Start timing
 	cudaEventRecord( start );
 
@@ -140,8 +146,8 @@ float relax_UMA( uint32_t N, uint32_t dim, uint32_t nIt )
 		//int nT( 1024 ), nB( ( N / 1024 ) / 2 + 1 );
 		for ( int i = 0; i < nIt; i++ )
 		{
-			gsRelax_Laplacian1D_even << <g_NumBlocks, g_NumThreads >> >( d_Data_A, d_Data_B, N );
-			gsRelax_Laplacian1D_odd << <g_NumBlocks, g_NumThreads >> >( d_Data_A, d_Data_B, N );
+			gsRelax_Laplacian1D_even << <occ.numBlocks, occ.numThreads >> >( d_Data_A, d_Data_B, N );
+			gsRelax_Laplacian1D_odd << < occ.numBlocks, occ.numThreads >> >( d_Data_A, d_Data_B, N );
 			cudaDeviceSynchronize();
 			res = sqrt( getResidueSq( d_Data_A, d_Data_B, N ) );
 
@@ -150,6 +156,19 @@ float relax_UMA( uint32_t N, uint32_t dim, uint32_t nIt )
 	}
 	else if ( dim == 2 )
 	{
+		// Right now it's assumed there's a nice sqrt of numThreads (usually 1024 ==> 32x32)
+		uint32_t len = sqrt( N );
+		uint3 numThreads = make_uint3( sqrtToInt( occ.numThreads ), sqrtToInt( occ.numThreads ), 0 );
+		uint3 numBlocks = make_uint3( len / occ.numThreads, 1, 0 ); // not sure about this
+		for ( int i = 0; i < nIt; i++ )
+		{
+			gsRelax_Laplacian2D_even << <numBlocks, numThreads >> >( d_Data_A, d_Data_B, len );
+			gsRelax_Laplacian2D_odd << <numBlocks, numThreads >> >( d_Data_A, d_Data_B, len );
+			cudaDeviceSynchronize();
+			res = sqrt( getResidueSq( d_Data_A, d_Data_B, N ) );
+
+			swap( d_Data_A, d_Data_B );
+		}
 	}
 
 	// Stop timing
@@ -166,7 +185,7 @@ float relax_UMA( uint32_t N, uint32_t dim, uint32_t nIt )
 	return timeTaken;
 }
 
-float relax( uint32_t N, uint32_t dim, uint32_t nIt )
+float RelaxFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 {
 	// Create timing objects, do not start
 	float timeTaken( 0 );
@@ -185,6 +204,9 @@ float relax( uint32_t N, uint32_t dim, uint32_t nIt )
 	cudaMalloc( (void **) &d_Data_A, size );
 	cudaMalloc( (void **) &d_Data_B, size );
 
+	// Get max occupancy values
+	LaunchParams occ = GetBestOccupancy( dim == 2 ? gsRelax_Laplacian1D_even : gsRelax_Laplacian2D_even, N );
+
 	// Start timing
 	cudaEventRecord( start );
 
@@ -200,8 +222,8 @@ float relax( uint32_t N, uint32_t dim, uint32_t nIt )
 		{
 			cudaMemcpy( d_Data_A, h_Data_A, size, cudaMemcpyHostToDevice );
 			cudaMemcpy( d_Data_B, h_Data_B, size, cudaMemcpyHostToDevice );
-			gsRelax_Laplacian1D_even << <g_NumBlocks, g_NumThreads >> >( d_Data_A, d_Data_B, N );
-			gsRelax_Laplacian1D_odd << <g_NumBlocks, g_NumThreads >> >( d_Data_A, d_Data_B, N );
+			gsRelax_Laplacian1D_even << < occ.numBlocks, occ.numThreads >> >( d_Data_A, d_Data_B, N );
+			gsRelax_Laplacian1D_odd << < occ.numBlocks, occ.numThreads >> >( d_Data_A, d_Data_B, N );
 			cudaMemcpy( h_Data_A, d_Data_A, size, cudaMemcpyDeviceToHost );
 			cudaMemcpy( h_Data_B, d_Data_B, size, cudaMemcpyDeviceToHost );
 			res = sqrt( getResidueSq( h_Data_A, h_Data_B, N ) );
@@ -212,7 +234,23 @@ float relax( uint32_t N, uint32_t dim, uint32_t nIt )
 	}
 	else if ( dim == 2 )
 	{
-		// NYI
+		// Right now it's assumed there's a nice sqrt of numThreads (usually 1024 ==> 32x32)
+		uint32_t len = sqrt( N );
+		uint3 numThreads = make_uint3( sqrtToInt( occ.numThreads ), sqrtToInt( occ.numThreads ), 0 );
+		uint3 numBlocks = make_uint3( len / occ.numThreads, 1, 0 ); // not sure about this
+		for ( int i = 0; i < nIt; i++ )
+		{
+			cudaMemcpy( d_Data_A, h_Data_A, size, cudaMemcpyHostToDevice );
+			cudaMemcpy( d_Data_B, h_Data_B, size, cudaMemcpyHostToDevice );
+			gsRelax_Laplacian2D_even << <numBlocks, numThreads >> >( d_Data_A, d_Data_B, len );
+			gsRelax_Laplacian2D_odd << <numBlocks, numThreads >> >( d_Data_A, d_Data_B, len );
+			cudaMemcpy( h_Data_A, d_Data_A, size, cudaMemcpyDeviceToHost );
+			cudaMemcpy( h_Data_B, d_Data_B, size, cudaMemcpyDeviceToHost );
+			res = sqrt( getResidueSq( h_Data_A, h_Data_B, N ) );
+
+			swap( h_Data_A, h_Data_B );
+			swap( d_Data_A, d_Data_B );
+		}
 	}
 
 	// Stop timing
@@ -230,102 +268,84 @@ float relax( uint32_t N, uint32_t dim, uint32_t nIt )
 
 	return timeTaken;
 }
-
-// I'm keeping this around as a generic way of getting occupancy optima
-__global__ void MyKernel( int *array, int arrayCount )
-{
-	int idx = threadIdx.x + blockIdx.x * blockDim.x;
-	if ( idx < arrayCount )
-	{
-		array[idx] *= array[idx];
-	}
-}
-
-int main( int argc, char ** argv )
-{
-	// See how many args we got
-	if ( argc < 6 )
-	{
-		printf( "Error! Invalid arguments passed:\n" );
-		for ( int i = 0; i < argc; i++ )
-			printf( "%s\n", argv[i] );
-		return EXIT_FAILURE;
-	}
-
-	// Get problem size, # iterations, dimension
-	int N = atoi( argv[2] );
-	int dim = /*atoi( argv[3] )*/ 1; // Hardcoded until I figure out 2D
-	int nIt = atoi( argv[4] );
-
-	if ( N < 0 || dim < 0 || nIt < 0 )
-	{
-		printf( "Error! Invalid arguments passed:\n" );
-		for ( int i = 0; i < argc; i++ )
-			printf( "%s\n", argv[i] );
-		return EXIT_FAILURE;
-	}
-	
-	// find best occupancy stuff (not working on windows)
-#ifndef _WIN32
-	cuOccupancyMaxPotentialBlockSize( &g_MinNumBlocks, &g_NumThreads, (CUfunction)MyKernel, 0, 0, 0 );
-#else
-	g_NumThreads = 1024;
-#endif
-
-	// Pick a sensible block number
-	g_NumBlocks = ( N + g_NumThreads - 1 ) / g_NumThreads;
-
-	// See if profiling or benchmarking
-	std::string type = argv[1];
-	if ( type == "profile")
-	{
-		std::string pattern = argv[5];
-		cudaProfilerStart();
-		if ( pattern == "UMA" )
-		{
-			relax_UMA( N, dim, nIt );
-		}
-		else if ( pattern == "HD" )
-		{
-			relax( N, dim, nIt );
-		}
-		cudaProfilerStop();
-
-		return EXIT_SUCCESS;
-	}
-	// We need number of times run for benchmarking
-	else if ( type == "benchmark" && argc >= 6)
-	{
-		int testCount = atoi( argv[5] );
-		
-		// Do both UMA and Host-Device code
-		// Create a cuda event, start timing, stop, write to file
-		float umaSum( 0 ), hdSum( 0 );
-		for ( int i = 0; i < testCount; i++ )
-		{
-			hdSum += relax( N, dim, nIt );
-			umaSum += relax_UMA( N, dim, nIt );
-		}
-
-		// Find average runtime
-		hdSum /= float( testCount );
-		umaSum /= float( testCount );
-
-		// Print to file based on prob size
-		std::string fileName = "gsRelax_";
-		fileName.append( argv[2] ).append(".txt");
-		FILE * fp = fopen( fileName.c_str(), "w" );
-		if ( !fp )
-		{
-			printf( "Error opening file %s! closing...\n", fileName.c_str() );
-			return EXIT_FAILURE;
-		}
-
-		fprintf( fp, "%f\t%f", hdSum, umaSum );
-		fclose( fp );
-
-		return EXIT_SUCCESS;
-	}
-
-	return EXIT_FAILURE;
-}
+//
+//// I'm keeping this around as a generic way of getting occupancy optima
+//__global__ void MyKernel( int *array, int arrayCount )
+//{
+//	int idx = threadIdx.x + blockIdx.x * blockDim.x;
+//	if ( idx < arrayCount )
+//	{
+//		array[idx] *= array[idx];
+//	}
+//}
+//
+//int runRelax( int argc, char ** argv )
+//{
+//	// Get problem size, # iterations, dimension
+//	int N = atoi( argv[2] );
+//	int dim = atoi( argv[3] );
+//	int nIt = atoi( argv[4] );
+//
+//	if ( N < 0 || dim < 0 || nIt < 0 )
+//	{
+//		printf( "Error! Invalid arguments passed:\n" );
+//		for ( int i = 0; i < argc; i++ )
+//			printf( "%s\n", argv[i] );
+//		return EXIT_FAILURE;
+//	}
+//
+//
+//	// See if profiling or benchmarking
+//	std::string type = argv[1];
+//	if ( type == "profile")
+//	{
+//		std::string pattern = argv[5];
+//		cudaProfilerStart();
+//		if ( pattern == "UMA" )
+//		{
+//			gsRelax_UMA( N, dim, nIt );
+//		}
+//		else if ( pattern == "HD" )
+//		{
+//			gsRelax_HD( N, dim, nIt );
+//		}
+//		cudaProfilerStop();
+//
+//		return EXIT_SUCCESS;
+//	}
+//	// We need number of times run for benchmarking
+//	else if ( type == "benchmark" && argc >= 6)
+//	{
+//		int testCount = atoi( argv[5] );
+//		
+//		// Do both UMA and Host-Device code
+//		// Create a cuda event, start timing, stop, write to file
+//		float umaSum( 0 ), hdSum( 0 );
+//		for ( int i = 0; i < testCount; i++ )
+//		{
+//			hdSum += gsRelax_HD( N, dim, nIt );
+//			umaSum += gsRelax_UMA( N, dim, nIt );
+//		}
+//
+//		// Find average runtime
+//		hdSum /= float( testCount );
+//		umaSum /= float( testCount );
+//
+//		// Print to file based on prob size
+//		std::string fileName = "gsRelax_";
+//		fileName.append( argv[2] ).append(".txt");
+//		FILE * fp = fopen( fileName.c_str(), "w" );
+//		if ( !fp )
+//		{
+//			printf( "Error opening file %s! closing...\n", fileName.c_str() );
+//			return EXIT_FAILURE;
+//		}
+//
+//		fprintf( fp, "%f\t%f", hdSum, umaSum );
+//		fclose( fp );
+//
+//		return EXIT_SUCCESS;
+//	}
+//
+//	return EXIT_FAILURE;
+//}

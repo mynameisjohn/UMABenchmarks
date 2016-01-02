@@ -1,54 +1,104 @@
-#include "util.h"
 #include <stdlib.h>
 
-int main(int argc, char ** argv){
-	if (argc < 3)
-		return -1;
+#include "../util.h"
+#include "microbenchmarks.h"
 
-	int N = atoi(argv[1]);
-	int nIt = atoi(argv[2]);
-   int nT(1024), nB(N/1024+1);
 
-	if (N < 0 || nIt < 0)
-		return -2;
+float AGSCFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
+{
+	// Create timing objects, do not start
+	float timeTaken( 0 );
+	cudaEvent_t start, stop;
+	cudaEventCreate( &start );
+	cudaEventCreate( &stop );
 
-   srand(1);
+	// Create random subset
+	int3 subset;
+	subset.x = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
+	subset.y = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
+	subset.z = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
 
-   int3 subset;
-   subset.x = (int)(((float)rand()/(float)RAND_MAX) * N);
-   subset.y = (int)(((float)rand()/(float)RAND_MAX) * N);
-   subset.z = (int)(((float)rand()/(float)RAND_MAX) * N);
+	// Allocate data
+	size_t size = sizeof( float ) * N;
+	float *d_Data( 0 );
+	cudaMallocManaged( (void **) &d_Data, size );
 
-#ifdef UMA
-   float * data(0);
-   int size = sizeof(float)*N;
-	cudaMallocManaged((void **)&data, size);
-   for (int i=0; i<nIt; i++){
-      inc<<<nB, nT>>>(data, N);
-		cudaDeviceSynchronize();      
-      for (int j=0; j<N; j++)
-         if (contains(subset, j))
-            data[j]++;
-   }
+	// Get max occupancy values
+	LaunchParams occ = GetBestOccupancy( inc, N );
 
-   free(data);
-#else
-   float * h_Data(0), * d_Data(0);
-   int size = sizeof(float)*N;
-   h_Data = (float *)malloc(size);
-   cudaMalloc((void **)&d_Data, size);
-   for (int i=0; i<nIt; i++){
-      cudaMemcpy(d_Data, h_Data, size, cudaMemcpyHostToDevice);
-      inc<<<nB, nT>>>(d_Data, N);
-      cudaMemcpy(h_Data, d_Data, size, cudaMemcpyDeviceToHost);
-      for (int j=0; j<N; j++)
-         if (contains(subset, j))
-            h_Data[j]++;
-   }
+	// Start timing
+	cudaEventRecord( start );
 
-   free(h_Data);
-   cudaFree(d_Data);
-#endif
+	// Run kernel, copy back to host, only touch subset on CPU
+	for ( int i = 0; i < nIt; i++ )
+	{
+		inc << < occ.numBlocks, occ.numThreads >> >( d_Data, N );
+		cudaDeviceSynchronize();
+		for ( int j = 0; j < N; j++ )
+			if ( contains( subset, j ) )
+				d_Data[j]++;
+	}
 
-	return 0;
+	// Stop timing
+	cudaEventRecord( stop );
+	cudaEventSynchronize( stop );
+
+	// Free
+	cudaFree( d_Data );
+
+	// Get elapsed time
+	cudaEventElapsedTime( &timeTaken, start, stop );
+
+	return timeTaken;
+}
+
+float AGSCFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
+{
+	// Create timing objects, do not start
+	float timeTaken( 0 );
+	cudaEvent_t start, stop;
+	cudaEventCreate( &start );
+	cudaEventCreate( &stop );
+
+	// Create random subset
+	int3 subset;
+	subset.x = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
+	subset.y = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
+	subset.z = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
+
+	// Allocate data
+	size_t size = sizeof( float ) * N;
+	float * h_Data( 0 ), *d_Data( 0 );
+	h_Data = (float *) malloc( size );
+	cudaMalloc( (void **) &d_Data, size );
+
+	// Get max occupancy values
+	LaunchParams occ = GetBestOccupancy( inc, N );
+
+	// Start timing
+	cudaEventRecord( start );
+
+	// Run kernel, copy back to host, only touch subset on CPU
+	for ( int i = 0; i < nIt; i++ )
+	{
+		cudaMemcpy( d_Data, h_Data, size, cudaMemcpyHostToDevice );
+		inc << < occ.numBlocks, occ.numThreads >> >( d_Data, N );
+		cudaMemcpy( h_Data, d_Data, size, cudaMemcpyDeviceToHost );
+		for ( int j = 0; j < N; j++ )
+			if ( contains( subset, j ) )
+				h_Data[j]++;
+	}
+
+	// Stop timing
+	cudaEventRecord( stop );
+	cudaEventSynchronize( stop );
+
+	// Free
+	free( h_Data );
+	cudaFree( d_Data );
+
+	// Get elapsed time
+	cudaEventElapsedTime( &timeTaken, start, stop );
+
+	return timeTaken;
 }

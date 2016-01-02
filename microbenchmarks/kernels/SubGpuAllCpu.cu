@@ -1,56 +1,112 @@
-#include "util.h"
+#include "../util.h"
+#include "microbenchmarks.h"
 
 __global__
-void subset_G(float * data, int N, int3 subset){
-   int idx = threadIdx.x+blockDim.x*blockIdx.x;
-   if (idx < N && contains(subset, idx)) data[idx]++;
+void subset_G( float * data, int N, int3 subset )
+{
+	int idx = threadIdx.x + blockDim.x*blockIdx.x;
+	if ( idx < N && contains( subset, idx ) ) data[idx]++;
 }
 
-int main(int argc, char ** argv){
-	if (argc < 3)
-		return -1;
+float SGACFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
+{
+	// Create timing objects, do not start
+	float timeTaken( 0 );
+	cudaEvent_t start, stop;
+	cudaEventCreate( &start );
+	cudaEventCreate( &stop );
 
-	int N = atoi(argv[1]);
-	int nIt = atoi(argv[2]);
-   int size = sizeof(float)*N;
-   int nT(1024), nB(N/1024+1);
-	if (N < 0 ||nIt < 0)
-		return -2;
+	// Determine random subset
+	int3 subset;
+	subset.x = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
+	subset.y = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
+	subset.z = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
 
-   srand(1);
+	// Allocate data
+	size_t size = sizeof( float )*N;
+	float *d_Data( 0 );
+	cudaMallocManaged( (void **) &d_Data, size );
 
-   int3 subset;
-   subset.x = (int)(((float)rand()/(float)RAND_MAX) * N);
-   subset.y = (int)(((float)rand()/(float)RAND_MAX) * N);
-   subset.z = (int)(((float)rand()/(float)RAND_MAX) * N);
+	// Set input to zero
+	memset( d_Data, 0, size );
 
-#ifdef UMA
-	float * data(0);
-   cudaMallocManaged((void **)&data, size);
+	// Get max occupancy values
+	LaunchParams occ = GetBestOccupancy( subset_G, N );
 
-   for (int i=0; i<nIt; i++){
-      subset_G<<<nB, nT>>>(data, N, subset);
+	// Start timing
+	cudaEventRecord( start );
+
+	// Copy to device and back, then touch everything on host
+	for ( int i = 0; i<nIt; i++ )
+	{
+		subset_G << < occ.numBlocks, occ.numThreads >> >( d_Data, N, subset );
 		cudaDeviceSynchronize();
-      for (int j=0; j<N; j++)
-         data[j]++;
-   }
+		for ( int j = 0; j<N; j++ )
+			d_Data[j]++;
+	}
 
-   free(data);
-#else
-	float * h_Data(0), * d_Data(0);
-   h_Data = (float *)malloc(size);
-   cudaMalloc((void **)&d_Data, size);
+	// Free
+	cudaFree( d_Data );
 
-   for (int i=0; i<nIt; i++){
-      cudaMemcpy(d_Data, h_Data, size, cudaMemcpyHostToDevice);
-      subset_G<<<nB, nT>>>(d_Data, N, subset);
-      cudaMemcpy(h_Data, d_Data, size, cudaMemcpyDeviceToHost);
-      for (int j=0; j<N; j++)
-         h_Data[j]++;
-   }
+	// Stop timing
+	cudaEventRecord( stop );
+	cudaEventSynchronize( stop );
 
-   free(h_Data);
-   cudaFree(d_Data);
-#endif
-	return 0;
+	// Get elapsed time
+	cudaEventElapsedTime( &timeTaken, start, stop );
+
+	return timeTaken;
+}
+
+float SGACFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
+{
+	// Create timing objects, do not start
+	float timeTaken( 0 );
+	cudaEvent_t start, stop;
+	cudaEventCreate( &start );
+	cudaEventCreate( &stop );
+
+	// Determine random subset
+	int3 subset;
+	subset.x = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
+	subset.y = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
+	subset.z = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
+
+	// Allocate data
+	size_t size = sizeof( float )*N;
+	float * h_Data( 0 ), *d_Data( 0 );
+	h_Data = (float *) malloc( size );
+	cudaMalloc( (void **) &d_Data, size );
+
+	// Get max occupancy values
+	LaunchParams occ = GetBestOccupancy( subset_G, N );
+
+	// Set input to zero
+	memset( h_Data, 0, size );
+
+	// Start timing
+	cudaEventRecord( start );
+
+	// Copy to device and back, then touch everything on host
+	for ( int i = 0; i<nIt; i++ )
+	{
+		cudaMemcpy( d_Data, h_Data, size, cudaMemcpyHostToDevice );
+		subset_G << <occ.numBlocks, occ.numThreads >> >( d_Data, N, subset );
+		cudaMemcpy( h_Data, d_Data, size, cudaMemcpyDeviceToHost );
+		for ( int j = 0; j<N; j++ )
+			h_Data[j]++;
+	}
+
+	// Free
+	free( h_Data );
+	cudaFree( d_Data );
+
+	// Stop timing
+	cudaEventRecord( stop );
+	cudaEventSynchronize( stop );
+
+	// Get elapsed time
+	cudaEventElapsedTime( &timeTaken, start, stop );
+
+	return timeTaken;
 }
