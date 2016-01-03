@@ -7,6 +7,10 @@ class BenchmarkData:
 		# Get time
 		self.HDTime = runTimes[0]
 		self.UMATime = runTimes[1]
+	
+	def __init__(self, hd, uma):
+		self.HDTime = float(hd)
+		self.UMATime = float(uma)
 		
 class Benchmarker:
 	def __init__(self, progName, pSize, nIt, tc):
@@ -15,6 +19,8 @@ class Benchmarker:
 		self. NumIt = nIt
 		self.TestCount = tc
 		
+		self.__accum = BenchmarkData(0, 0)
+		self.__counter = 0
 	# This can be called multiple times, no state is remembered
 	def Execute(self, ExeName):
 		# format the benchmark command
@@ -33,4 +39,12 @@ class Benchmarker:
 		
 		# Get output file, return data
 		outFile = self.ProgName + '_' + str(self.ProbSize) + '.txt'
-		return BenchmarkData(outFile)
+		ret = BenchmarkData(outFile)
+		
+		# maintain accumulator here
+		self.__counter += 1
+		self.__accum += ret
+		return ret
+	
+	def GetAveragedData(self):
+		return self.__accum / float(self.__counter)

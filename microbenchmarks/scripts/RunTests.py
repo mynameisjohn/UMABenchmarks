@@ -1,11 +1,16 @@
 from argparse import ArgumentParser
 import subprocess as sp
 from platform import system
-import matplotlib.pyplot as plt
-import numpy as np
 
 from Profiler import Profiler
 from Benchmarker import Benchmarker
+from DataPlot import *
+
+RunTypes = {
+	'bm',
+	'p',
+	'both'
+}
 
 Microbenchmarks = {
 	'Relax',	# Gauss Seidel Relaxation
@@ -19,122 +24,65 @@ Microbenchmarks = {
 
 # set up argparse
 parser = ArgumentParser(description = "Use this script to automate the microbenchmarks")
+parser.add_argument('ExeName' type=str, nargs=1)
+parser.add_argument('Prog', type=str, nargs='+')
+parser.add_argument('Type', type=str, nargs=1)
+parser.add_argument('PSize', type=int, nargs='+')
+parser.add_argument('NumIt', type=int, nargs=1)
+parser.add_argument('Pattern', type=str, nargs=1, default='HD')
+parser.add_argument('TestCount', type=int, nargs=1, default=1)
+parser.add_argument('MakePlots', type=bool, nargs=1, default=False)
+parser.add_argument('Verbose', type=bool, nargs=1, default=False)
+parser.add_argument('ShowPlots', type=bool, nargs=1, default=False)
 
-# These should be parsed
-ExeName = 'gsRelax'
-ProgName = 'Relax'
-RunType = 'benchmark'
-ProbSize = 2048
-Dim = 1
-NumIt = 100
-Pattern = 'HD'
-MakePlots = True
-TestCount = 100
-Verbose = True
+# Get args
+args = parser.parse_args()
 
-Profilers = []
-Benchmarkers = []
+# If the program name contained all, make a note of it
+if ('All' in args.Prog):
+	args.Prog = Microbenchmarks
 
-# Iterate through all of these, they will be combined into plots
-liBenchmarkers.append(Benchmarker('Relax', ProbSize, NumIt, TestCount))
-liProfilers.append(Profiler('AGAC',ProbSize, NumIt, Pattern))
+# Create all profiler and benchmarker objects
+dProfilers = dict()		# Profilers are indexed by program name (max pSize)
+dBenchmarkers = dict()	# Benchmarkers are index [pSize][progName]
 
-# Benchmarkers need to be split up by problem size
+# Create all profilers
+if (args.Type == 'bm' or args.Type == 'both'):
+	for progName in args.Prog:
+		p = Profiler(progName, max(args.PSize), args.NumIt, args.Pattern)
+		dProfilers[progName] = p
+		
+# Create all benchmarkers
+if (args.Type == 'p' or args.Type == 'both'):
+	# for every problem size given to us
+	for pSize in args.PSize:
+		# if we haven't seen this before
+		if pSize not in dBenchmarkers:
+			# make a dict
+			dBenchmarkers[pSize] = dict())
+		# Then loop through every program name given to us
+		for progName in args.Prog
+			# if this program doesn't exist in the psize dict
+			if progName not in dBenchmarkers[pSize]:
+				# add a new benchmarker to the dict
+				b = Benchmarker(progName, args.PSize, args.NumIt, args.TestCount)
+				dBenchmarkers[pSize][progName] = b
 
-# the command formatting can move in class
-for bm in liBenchmarkers:
-	# format the benchmark command
-	bmCmd = [ExeName]
-	bmCmd += [ProgName]
-	bmCmd += [RunType]
-	bmCmd += [str(ProbSize)]
-	bmCmd += [str(Dim)]
-	bmCmd += [str(NumIt)]
-	bmCmd += [str(TestCount)]
+# execute all tests
+runCount = 1
+for i in range(0, runCount):
+	# execute all profilers
+	for prog, prof in dProfilers:
+		prof.Execute()
 	
-	# Run the benchmarks
-	ret = sp.call(TestCmd, shell = (system() == 'Windows'))
-	if (ret != 0):
-		continue
-	
-	# Open Output file
-	FileName = ProgName + '_' + str(ProbSize) + '.txt'
-	F = open(FileName, 'r')
+	# execute all benchmarkers
+	for prog, pSizeDict in dBenchmarkers:
+		for psize, bm in pSizeDict:
+			bm.Execute()
 
-	# File has two numbers: HD time, UMA time
-	runTimes = [float(n) for n in F.readline().split('\t')]
-	if (Verbose):
-		print('{} took {} mS HD, {} mS UMA'.format(ProgName, runTimes[0], runTimes[1]))
-
-profPlots = []
-for prof in liProfilers:
-	# nvprof will make this output file
-	OutFileName = ProgName + '_' + str(ProbSize) + '.prof'
-	# format nvprof command
-	nvprofCmd = ['nvprof']
-	nvprofCmd += ['--profile-api-trace', 'none']
-	nvprofCmd += ['--log-file', OutFileName]
-	nvprofCmd += ['--profile-from-start-off']
-	nvprofCmd += [ExeName]
+# Make plots
+if len(dProfilers):
+	MakeProfilerPlot(dProfilers)
 	
-	# run nvprof, get data, add to list
-	ret = sp.call(nvprofCmd, shell = (system() == 'Windows'))
-	nvprofData[ProgName].append(ProfileData(OutFileName))
-	
-	# normalize all profile data, reduce list of data to single datum
-	runCount = 1
-	nvprofData[ProgName] = sum(nvprofData[ProgName]) / runCount
-	
-	# Get the bar graph data from the profiler, add to list
-	plotData = prof.GetPlotData()
-	profPlots.append(plotData)
-	
-# # Make the command
-# TestCmd = [ExeName]
-# TestCmd += [ProgName]
-# TestCmd += [RunType]
-# TestCmd += [str(ProbSize)]
-# TestCmd += [str(Dim)]
-# TestCmd += [str(NumIt)]
-# if (RunType == 'benchmark'):
-	# TestCmd += [str(TestCount)]
-# elif (RunType == 'profile'):
-	# TestCmd += [Pattern]
-	
-# # Run the benchmarks (shell = True on Windows)
-# ret = sp.call(TestCmd, shell = (system() == 'Windows'))
-# if (ret != 0):
-	# print('Error occured during running test!')
-	# print(TestCmd)
-	# #return
-	
-# # Handle benchmark output
-# if (RunType == 'benchmark'):
-	# # Open Output file
-	# FileName = ProgName + '_' + str(ProbSize) + '.txt'
-	# F = open(FileName, 'r')
-
-	# # File has two numbers: HD time, UMA time
-	# runTimes = [float(n) for n in F.readline().split('\t')]
-	# if (Verbose):
-		# print('{} took {} mS HD, {} mS UMA'.format(ProgName, runTimes[0], runTimes[1]))
-elif (RunType == 'profile'):
-	# nvprof will make this output file
-	OutFileName = ProgName + '_' + str(ProbSize) + '.prof'
-	# format nvprof command
-	nvprofCmd = ['nvprof']
-	nvprofCmd += ['--profile-api-trace', 'none']
-	nvprofCmd += ['--log-file', OutFileName]
-	nvprofCmd += ['--profile-from-start-off']
-	nvprofCmd += [ExeName]
-	
-	# run nvprof, get data, add to list
-	ret = sp.call(nvprofCmd, shell = (system() == 'Windows'))
-	nvprofData[ProgName].append(ProfileData(OutFileName))
-	
-	# normalize all profile data, reduce list of data to single datum
-	runCount = 1
-	nvprofData[ProgName] = sum(nvprofData[ProgName]) / runCount
-	
-	# create plot data
-	
+if len(dBenchmarkers):
+	MakeBenchmarkPlots(dBenchmarkers)

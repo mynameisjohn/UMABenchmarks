@@ -66,6 +66,10 @@ class ProfileData:
 		ret.HtoDTime /= s
 		ret.APITime /= s
 		return ret
+	
+	# Useful for numpy array constructor
+	def AsList(self):
+		return [self.KernelTime, self.MemsetTime, self.DtoHTime, self.HtoDTime, self.APITime]
 		
 class Profiler:
 	def __init__(self, progName, pSize, nIt, pattern):
@@ -74,8 +78,10 @@ class Profiler:
 		self. NumIt = nIt
 		self.Pattern = pattern
 		
-	# Make it so I can call this however many times I want
-	def __Execute(self, ExeName):
+		# maintain an average here
+		self.__accum = ProfileData(0,0,0,0,0)
+		self.__counter = 0
+	def Execute(self, ExeName):
 		# nvprof will make this output file
 		profDataFile = ProgName + '_' + str(ProbSize) + '.prof'
 		
@@ -91,5 +97,12 @@ class Profiler:
 		if (ret != 0):
 			return None
 			
-		# Return data object
-		return ProfileData(profDataFile)
+		# Add to averager and return data object
+		ret = ProfileData(profDataFile)
+		
+		self.__accum += ret
+		self.__counter += 1
+		return ret
+		
+	def GetAveragedData(self):
+		return self.__accum / float(self.__counter)
