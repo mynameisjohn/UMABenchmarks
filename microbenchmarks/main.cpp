@@ -9,8 +9,6 @@
 
 #include <cuda_profiler_api.h>
 
-
-
 // Generic error handling
 int err( int argc, char ** argv )
 {
@@ -80,9 +78,6 @@ int main( int argc, char ** argv )
 	{
 		int testCount = atoi( argv[6] );
 
-		printf( "Benchmarking %s...\n", progName.c_str() );
-		printf( "Problem Size: %d\tDim: %d\tNumItL %d\tTestCount: %d\n", N, dim, nIt, testCount );
-
 		// Do both UMA and Host-Device code
 		// Create a cuda event, start timing, stop, write to file
 		float umaSum( 0 ), hdSum( 0 );
@@ -95,8 +90,6 @@ int main( int argc, char ** argv )
 		// Find average runtime
 		hdSum /= float( testCount );
 		umaSum /= float( testCount );
-
-		printf( "%f\t%f\n", hdSum, umaSum );
 
 		// Print to file based on prob size
 		std::string fileName = fn->GetName();
