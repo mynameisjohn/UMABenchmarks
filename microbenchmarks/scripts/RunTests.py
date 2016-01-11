@@ -5,18 +5,18 @@ from Benchmarker import Benchmarker
 import DataPlot
 
 RunTypes = {
-	'bm',
-	'p',
-	'both'
+    'bm',
+    'p',
+    'both'
 }
 
 Microbenchmarks = {
-	'Relax',	# Gauss Seidel Relaxation
-	'SGAC',		# Subset GPU All CPU
-	'AGSC',		# All GPU Subset CPU
-	'SGACR',	# Subset GPU All CPU Random
-	'AGAC'		# All GPU All Cpu
-	'All'		# Keyword to run all microbenchmarks
+    'Relax',    # Gauss Seidel Relaxation
+    'SGAC',        # Subset GPU All CPU
+    'AGSC',        # All GPU Subset CPU
+    'SGACR',    # Subset GPU All CPU Random
+    'AGAC'        # All GPU All Cpu
+    'All'        # Keyword to run all microbenchmarks
 }
 #[Profiler(n, ProbSize, NumIt, TestCount) for n in Microbenchmarks]
 
@@ -39,60 +39,60 @@ print(args)
 
 # Sanity check
 if (set(args.p) & Microbenchmarks == None):
-	print('Error: Invalid program name(s) : ' + str(args.p))
-	quit()
+    print('Error: Invalid program name(s) : ' + str(args.p))
+    quit()
 if (set(args.t) & RunTypes == None):
-	print('Error: Invalid run type(s) : ' + str(args.t))
-	quit()
+    print('Error: Invalid run type(s) : ' + str(args.t))
+    quit()
 
 if args.S:
-	DataPlot.g_ShowPlots = True
+    DataPlot.g_ShowPlots = True
 
 # If the program name contained all, make a note of it
 if ('All' in args.p):
-	args.Prog = Microbenchmarks
+    args.Prog = Microbenchmarks
 
 # Create all profiler and benchmarker objects
-dProfilers = dict()		# Profilers are indexed by program name (max pSize)
-dBenchmarkers = dict()	# Benchmarkers are index [pSize][progName]
+dProfilers = dict()        # Profilers are indexed by program name (max pSize)
+dBenchmarkers = dict()    # Benchmarkers are index [pSize][progName]
 
 # Create all profilers
 if ('profile' in args.t):
-	for progName in args.p:
-		p = Profiler(progName, max(args.N), args.n[0], args.a)
-		dProfilers[progName] = p
-		
+    for progName in args.p:
+        p = Profiler(progName, max(args.N), args.n[0], args.a)
+        dProfilers[progName] = p
+        
 # Create all benchmarkers
 if ('benchmark' in args.t):
-	# for every problem size given to us
-	for pSize in args.N:
-		# if we haven't seen this before
-		if pSize not in dBenchmarkers:
-			# make a dict
-			dBenchmarkers[pSize] = dict()
-		# Then loop through every program name given to us
-		for progName in args.p:
-			# if this program doesn't exist in the psize dict
-			if progName not in dBenchmarkers[pSize]:
-				# add a new benchmarker to the dict
-				b = Benchmarker(progName, args.N, args.n, args.tc)
-				dBenchmarkers[pSize][progName] = b
+    # for every problem size given to us
+    for pSize in args.N:
+        # if we haven't seen this before
+        if pSize not in dBenchmarkers:
+            # make a dict
+            dBenchmarkers[pSize] = dict()
+        # Then loop through every program name given to us
+        for progName in args.p:
+            # if this program doesn't exist in the psize dict
+            if progName not in dBenchmarkers[pSize]:
+                # add a new benchmarker to the dict
+                b = Benchmarker(progName, pSize, args.n[0], args.tc)
+                dBenchmarkers[pSize][progName] = b
 
 # execute all tests
 runCount = 1
 for i in range(0, runCount):
-	# execute all profilers
-	for prof in dProfilers.values():
-		prof.Execute(args.e[0])
-	
-	# execute all benchmarkers
-	for prog, pSizeDict in dBenchmarkers:
-		for psize, bm in pSizeDict:
-			bm.Execute()
+    # execute all profilers
+    for prof in dProfilers.values():
+        prof.Execute(args.e[0])
+    
+    # execute all benchmarkers
+    for pSizeDict in dBenchmarkers.values():
+        for bm in pSizeDict.values():
+            bm.Execute(args.e[0])
 
 # Make plots
 if len(dProfilers) > 0:
-	DataPlot.MakeProfilerPlot(dProfilers)
-	
+    DataPlot.MakeProfilerPlot(dProfilers)
+    
 if len(dBenchmarkers) > 0:
-	DataPlot.MakeBenchmarkPlots(dBenchmarkers)
+    DataPlot.MakeBenchmarkPlots(dBenchmarkers)
