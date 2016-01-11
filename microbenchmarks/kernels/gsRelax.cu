@@ -8,7 +8,7 @@
 #include <device_launch_parameters.h>
 
 
-#include "../util.h"
+#include "util.h"
 #include "microbenchmarks.h"
 
 const float minRes( 0.1f );
@@ -130,7 +130,7 @@ float RelaxFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 	cudaMallocManaged( (void **) &d_Data_B, size );
 
 	// Get max occupancy values
-	LaunchParams occ = GetBestOccupancy( dim == 2 ? gsRelax_Laplacian1D_even : gsRelax_Laplacian2D_even, N );
+	LaunchParams occ = GetBestOccupancy( dim == 2 ? (void *) gsRelax_Laplacian1D_even : (void *) gsRelax_Laplacian2D_even, N );
 
 	// Start timing
 	cudaEventRecord( start );
@@ -205,7 +205,7 @@ float RelaxFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 	cudaMalloc( (void **) &d_Data_B, size );
 
 	// Get max occupancy values
-	LaunchParams occ = GetBestOccupancy( dim == 2 ? gsRelax_Laplacian1D_even : gsRelax_Laplacian2D_even, N );
+	LaunchParams occ = GetBestOccupancy( dim == 2 ? (void *) gsRelax_Laplacian1D_even : (void *) gsRelax_Laplacian2D_even, N );
 
 	// Start timing
 	cudaEventRecord( start );

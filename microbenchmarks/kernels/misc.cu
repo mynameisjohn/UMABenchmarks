@@ -1,6 +1,17 @@
 #include <cuda_occupancy.h>
+#include <cuda_profiler_api.h>
 
 #include "microbenchmarks.h"
+
+#include "util.h"
+
+__global__
+void inc( float * data, int N )
+{
+	int idx = threadIdx.x + blockDim.x * blockIdx.x;
+	if ( idx < N )
+		data[idx]++;
+}
 
 LaunchParams GetBestOccupancy( void * kernel, int N )
 {
@@ -19,8 +30,17 @@ LaunchParams GetBestOccupancy( void * kernel, int N )
 	return ret;
 }
 
-
 std::string TestFunc::GetName() const
 {
 	return m_StrName;
+}
+
+ScopedCuProfiler::ScopedCuProfiler()
+{
+	cudaProfilerStart();
+}
+
+ScopedCuProfiler::~ScopedCuProfiler()
+{
+	cudaProfilerStop();
 }

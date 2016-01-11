@@ -18,6 +18,12 @@ struct LaunchParams
 };
 LaunchParams GetBestOccupancy( void * kernel, int N );
 
+struct ScopedCuProfiler
+{
+	ScopedCuProfiler();
+	~ScopedCuProfiler();
+};
+
 class TestFunc
 {
 protected:

@@ -64,17 +64,14 @@ int main( int argc, char ** argv )
 	std::string type = argv[2];
 	if ( type == "profile" )
 	{
+		ScopedCuProfiler prof;
 		std::string pattern = argv[6];
-		cudaProfilerStart();
 		if ( pattern == "UMA" )
-		{
 			fn->runUMA( N, dim, nIt );
-		}
 		else if ( pattern == "HD" )
-		{
 			fn->runHD( N, dim, nIt );
-		}
-		cudaProfilerStop();
+		else
+			return err( argc, argv );
 
 		return EXIT_SUCCESS;
 	}
@@ -82,6 +79,9 @@ int main( int argc, char ** argv )
 	else if ( type == "benchmark" && argc >= 6 )
 	{
 		int testCount = atoi( argv[6] );
+
+		printf( "Benchmarking %s...\n", progName.c_str() );
+		printf( "Problem Size: %d\tDim: %d\tNumItL %d\tTestCount: %d\n", N, dim, nIt, testCount );
 
 		// Do both UMA and Host-Device code
 		// Create a cuda event, start timing, stop, write to file
@@ -95,6 +95,8 @@ int main( int argc, char ** argv )
 		// Find average runtime
 		hdSum /= float( testCount );
 		umaSum /= float( testCount );
+
+		printf( "%f\t%f\n", hdSum, umaSum );
 
 		// Print to file based on prob size
 		std::string fileName = fn->GetName();

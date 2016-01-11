@@ -1,4 +1,4 @@
-#include "../util.h"
+#include "util.h"
 #include "microbenchmarks.h"
 
 __global__
@@ -31,7 +31,7 @@ float SGACFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 	memset( d_Data, 0, size );
 
 	// Get max occupancy values
-	LaunchParams occ = GetBestOccupancy( subset_G, N );
+	LaunchParams occ = GetBestOccupancy( (void *) subset_G, N );
 
 	// Start timing
 	cudaEventRecord( start );
@@ -79,7 +79,7 @@ float SGACFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 	cudaMalloc( (void **) &d_Data, size );
 
 	// Get max occupancy values
-	LaunchParams occ = GetBestOccupancy( subset_G, N );
+	LaunchParams occ = GetBestOccupancy( (void *) subset_G, N );
 
 	// Set input to zero
 	memset( h_Data, 0, size );

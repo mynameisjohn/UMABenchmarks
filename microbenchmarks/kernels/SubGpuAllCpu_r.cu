@@ -1,4 +1,4 @@
-#include "../util.h"
+#include "util.h"
 #include "microbenchmarks.h"
 
 __global__
@@ -27,7 +27,7 @@ float SGACRFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 	float thresh = (float) rand() / (float) RAND_MAX;
 
 	// Get max occupancy values
-	LaunchParams occ = GetBestOccupancy( subset_G_Rand, N );
+	LaunchParams occ = GetBestOccupancy( (void *)subset_G_Rand, N );
 
 	// Allocate and create data
 	float *d_In( 0 ), *d_Out( 0 );

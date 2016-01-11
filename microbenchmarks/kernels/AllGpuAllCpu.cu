@@ -1,12 +1,5 @@
-#include "../util.h"
+#include "util.h"
 #include "microbenchmarks.h"
-
-__global__
-void inc( float * data, int N )
-{
-	int idx = threadIdx.x + blockDim.x*blockIdx.x;
-	if ( idx < N ) data[idx]++;
-}
 
 float AGACFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 {
@@ -22,7 +15,7 @@ float AGACFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 	cudaMallocManaged( (void **) &d_Data, size );
 
 	// Get max occupancy values
-	LaunchParams occ = GetBestOccupancy( inc, N );
+	LaunchParams occ = GetBestOccupancy( (void *)inc, N );
 
 	// Start timing
 	cudaEventRecord( start );
@@ -64,7 +57,7 @@ float AGACFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 	cudaMalloc( (void **) &d_Data, size );
 
 	// Get max occupancy values
-	LaunchParams occ = GetBestOccupancy( inc, N );
+	LaunchParams occ = GetBestOccupancy( (void *) inc, N );
 
 	// Start timing
 	cudaEventRecord( start );
