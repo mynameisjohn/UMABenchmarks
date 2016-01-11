@@ -50,7 +50,7 @@ if args.S:
 
 # If the program name contained all, make a note of it
 if ('All' in args.p):
-    args.Prog = Microbenchmarks
+    args.p = list(Microbenchmarks)
 
 # Create all profiler and benchmarker objects
 dProfilers = dict()        # Profilers are indexed by program name (max pSize)
