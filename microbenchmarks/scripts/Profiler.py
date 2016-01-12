@@ -11,7 +11,7 @@ class ProfileData:
                 ctorType = 'file'
                 OutFileName = args[0]
         elif len(args) is 5:
-            if not reduce(lambda a, b: isinstance(a, Real) and isinstance(b, Real), args):
+            if not all(isinstance(a, Real) for a in args):
                 print('incorrect invocation')
                 ctorType = None
         if ctorType is 'file':
@@ -97,6 +97,7 @@ class Profiler:
         self.__accum = ProfileData(0,0,0,0,0)
         self.__counter = 0
     def Execute(self, ExeName):
+        print(type(ExeName))
         if (system() == 'Windows'):
             ExeName += '.exe'
 

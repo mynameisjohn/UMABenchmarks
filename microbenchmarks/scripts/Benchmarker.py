@@ -11,7 +11,7 @@ class BenchmarkData:
                 ctorType = 'file'
                 OutFileName = args[0]
         elif len(args) is 2:
-            if len([a for a in args if isinstance(a, Real)]) is 2:
+            if all(isinstance(a, Real) for a in args):
                 ctorType = 'val'
         else:
             print('incorrect invocation of BenchmarkData ctor')
