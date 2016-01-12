@@ -6,8 +6,7 @@ import DataPlot
 
 RunTypes = {
     'bm',
-    'p',
-    'both'
+    'p'
 }
 
 Microbenchmarks = {
@@ -15,7 +14,7 @@ Microbenchmarks = {
     'SGAC',        # Subset GPU All CPU
     'AGSC',        # All GPU Subset CPU
     'SGACR',    # Subset GPU All CPU Random
-    'AGAC'        # All GPU All Cpu
+    'AGAC',        # All GPU All Cpu
     'All'        # Keyword to run all microbenchmarks
 }
 #[Profiler(n, ProbSize, NumIt, TestCount) for n in Microbenchmarks]
@@ -45,12 +44,14 @@ if (set(args.t) & RunTypes == None):
     print('Error: Invalid run type(s) : ' + str(args.t))
     quit()
 
+# Show matplotlib output as it comes
 if args.S:
     DataPlot.g_ShowPlots = True
 
 # If the program name contained all, make a note of it
 if ('All' in args.p):
-    args.p = list(Microbenchmarks)
+    Microbenchmarks.remove('All')
+    args.p = Microbenchmarks
 
 # Create all profiler and benchmarker objects
 dProfilers = dict()        # Profilers are indexed by program name (max pSize)
@@ -59,6 +60,7 @@ dBenchmarkers = dict()    # Benchmarkers are index [pSize][progName]
 # Create all profilers
 if ('profile' in args.t):
     for progName in args.p:
+        # Each program gets a Profile; just pick biggest prob size
         p = Profiler(progName, max(args.N), args.n[0], args.a)
         dProfilers[progName] = p
         

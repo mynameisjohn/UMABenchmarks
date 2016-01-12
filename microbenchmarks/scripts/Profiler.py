@@ -48,7 +48,11 @@ class ProfileData:
                         self.APITime += pct
                 else: # I guess we assume these are kernel calls
                     self.KernelTime += pct
-                
+
+            # Print here, handle elsewhere
+            if self.Total() == 0:
+                print('error opening profile data file ' + OutFileName)                
+
     # Value constructor
         elif ctorType is 'val':
             (k, m, d, h, a) = args
@@ -65,6 +69,7 @@ class ProfileData:
         d = A.DtoHTime + B.DtoHTime
         h = A.HtoDTime + B.HtoDTime
         a = A.APITime + B.APITime
+
         return ProfileData(k, m, d, h, a)
     
     # Needed for sum
@@ -82,6 +87,9 @@ class ProfileData:
         ret.APITime /= s
         return ret
     
+    def Total(self):
+        return sum(self.AsList())
+
     # Useful for numpy array constructor
     def AsList(self):
         return [self.KernelTime, self.MemsetTime, self.DtoHTime, self.HtoDTime, self.APITime]
@@ -125,6 +133,10 @@ class Profiler:
             
         # Add to averager and return data object
         pd = ProfileData(profDataFile)
+
+        # see if we got any actual data
+        if (pd.Total() == 0):
+            return None
         
         self.__accum += pd
         self.__counter += 1
