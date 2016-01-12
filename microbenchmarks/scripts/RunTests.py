@@ -34,7 +34,7 @@ parser.add_argument('-S', metavar='ShowPlots', type=bool, nargs=1, default=False
 
 # Get args
 args = parser.parse_args()
-print(args)
+#print(args)
 
 # Sanity check
 if (set(args.p) & Microbenchmarks == None):

@@ -105,7 +105,6 @@ class Profiler:
         self.__accum = ProfileData(0,0,0,0,0)
         self.__counter = 0
     def Execute(self, ExeName):
-        print(type(ExeName))
         if (system() == 'Windows'):
             ExeName += '.exe'
 
