@@ -19,10 +19,10 @@ void inc( float * data, int N )
 LaunchParams GetBestOccupancy( void * kernel, int N )
 {
 	LaunchParams ret = { 0, 0 };
-	uint32_t minGridSize( 0 );
+	int minGridSize( 0 );
 	// find best occupancy stuff (not working on windows)
 #ifndef _WIN32
-	cuOccupancyMaxPotentialBlockSize( &minGridSize.z, &ret.numThreads, (CUfunction) kernel, 0, 0, 0 );
+	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &ret.numThreads, kernel, 0, 0);
 #else
 	ret.numThreads = 1024;
 #endif

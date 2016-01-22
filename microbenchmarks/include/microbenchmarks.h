@@ -13,8 +13,8 @@
 
 struct LaunchParams
 {
-	uint32_t numBlocks;
-	uint32_t numThreads;
+	int numBlocks;
+	int numThreads;
 };
 LaunchParams GetBestOccupancy( void * kernel, int N );
 
