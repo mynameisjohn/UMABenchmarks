@@ -20,13 +20,15 @@ float AGACFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 	// Start timing
 	cudaEventRecord( start );
 
+	// Make random data between 0 and N
+	makeData( d_Data, N );
+
 	// Increment everything on CPU and GPU
 	for ( int i = 0; i < nIt; i++ )
 	{
 		inc << < occ.numBlocks, occ.numThreads >> >( d_Data, N );
 		cudaDeviceSynchronize();
-		for ( int j = 0; j < N; j++ )
-			d_Data[j]++;
+		incData( d_Data, N );
 	}
 
 	// Stop timing
@@ -61,6 +63,9 @@ float AGACFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 
 	// Start timing
 	cudaEventRecord( start );
+
+	// Make random data between 0 and N
+	makeData( h_Data, N );
 	
 	// Increment everything on CPU and GPU
 	for ( int i = 0; i < nIt; i++ )
@@ -68,8 +73,7 @@ float AGACFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 		cudaMemcpy( d_Data, h_Data, size, cudaMemcpyHostToDevice );
 		inc << < occ.numBlocks, occ.numThreads >> >( d_Data, N );
 		cudaMemcpy( h_Data, d_Data, size, cudaMemcpyDeviceToHost );
-		for ( int j = 0; j < N; j++ )
-			h_Data[j]++;
+		incData( h_Data, N );
 	}
 
 	// Stop timing

@@ -1,5 +1,5 @@
-import matplotlib
-matplotlib.use('Agg')
+#import matplotlib
+#matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -32,8 +32,8 @@ def MakeBenchmarkPlots(dBenchmarkers, filename = 'bm.pdf'):
 
     plt.yticks(np.arange(0, 2, 0.1))
     plt.xticks(Indices, Sizes )
-
-    plt.legend(  )
+    
+    plt.legend( loc=1, bbox_to_anchor = (1.05,1), mode='expand' )
 
     if g_ShowPlots is True:
         plt.show()

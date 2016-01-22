@@ -104,13 +104,6 @@ inline float getResidueSq( float * in, float * out, uint32_t N )
 	return r;
 }
 
-void makeData( float * data, uint32_t N )
-{
-	srand( 1 );//time(0));
-	for ( uint32_t i = 0; i<N; i++ )
-		data[i] = (float) rand() / (float) RAND_MAX;
-}
-
 
 float RelaxFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 {
@@ -136,14 +129,12 @@ float RelaxFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 	cudaEventRecord( start );
 
 	// Create random data
-	makeData( d_Data_A, N );
-	makeData( d_Data_B, N );
+	makeData( d_Data_A, N, true );
+	makeData( d_Data_B, N, true);
 
 	//Repetitive, I know, but I didn't want to introduce overhead during iteration
 	if ( dim == 1 )
 	{
-		//CudaStopWatch CSW( "UMA" );
-		//int nT( 1024 ), nB( ( N / 1024 ) / 2 + 1 );
 		for ( int i = 0; i < nIt; i++ )
 		{
 			gsRelax_Laplacian1D_even << <occ.numBlocks, occ.numThreads >> >( d_Data_A, d_Data_B, N );
@@ -151,6 +142,7 @@ float RelaxFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 			cudaDeviceSynchronize();
 			res = sqrt( getResidueSq( d_Data_A, d_Data_B, N ) );
 
+			// I'm not really sure why I'm swapping these...
 			swap( d_Data_A, d_Data_B );
 		}
 	}
@@ -210,8 +202,9 @@ float RelaxFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 	// Start timing
 	cudaEventRecord( start );
 
-	makeData( h_Data_A, N );
-	makeData( h_Data_B, N );
+	// Make random data between 0 and 1
+	makeData( h_Data_A, N, true );
+	makeData( h_Data_B, N, true );
 
 	//Repetitive, I know, but I didn't want to introduce overhead during iteration
 	if ( dim == 1 )
@@ -268,84 +261,3 @@ float RelaxFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 
 	return timeTaken;
 }
-//
-//// I'm keeping this around as a generic way of getting occupancy optima
-//__global__ void MyKernel( int *array, int arrayCount )
-//{
-//	int idx = threadIdx.x + blockIdx.x * blockDim.x;
-//	if ( idx < arrayCount )
-//	{
-//		array[idx] *= array[idx];
-//	}
-//}
-//
-//int runRelax( int argc, char ** argv )
-//{
-//	// Get problem size, # iterations, dimension
-//	int N = atoi( argv[2] );
-//	int dim = atoi( argv[3] );
-//	int nIt = atoi( argv[4] );
-//
-//	if ( N < 0 || dim < 0 || nIt < 0 )
-//	{
-//		printf( "Error! Invalid arguments passed:\n" );
-//		for ( int i = 0; i < argc; i++ )
-//			printf( "%s\n", argv[i] );
-//		return EXIT_FAILURE;
-//	}
-//
-//
-//	// See if profiling or benchmarking
-//	std::string type = argv[1];
-//	if ( type == "profile")
-//	{
-//		std::string pattern = argv[5];
-//		cudaProfilerStart();
-//		if ( pattern == "UMA" )
-//		{
-//			gsRelax_UMA( N, dim, nIt );
-//		}
-//		else if ( pattern == "HD" )
-//		{
-//			gsRelax_HD( N, dim, nIt );
-//		}
-//		cudaProfilerStop();
-//
-//		return EXIT_SUCCESS;
-//	}
-//	// We need number of times run for benchmarking
-//	else if ( type == "benchmark" && argc >= 6)
-//	{
-//		int testCount = atoi( argv[5] );
-//		
-//		// Do both UMA and Host-Device code
-//		// Create a cuda event, start timing, stop, write to file
-//		float umaSum( 0 ), hdSum( 0 );
-//		for ( int i = 0; i < testCount; i++ )
-//		{
-//			hdSum += gsRelax_HD( N, dim, nIt );
-//			umaSum += gsRelax_UMA( N, dim, nIt );
-//		}
-//
-//		// Find average runtime
-//		hdSum /= float( testCount );
-//		umaSum /= float( testCount );
-//
-//		// Print to file based on prob size
-//		std::string fileName = "gsRelax_";
-//		fileName.append( argv[2] ).append(".txt");
-//		FILE * fp = fopen( fileName.c_str(), "w" );
-//		if ( !fp )
-//		{
-//			printf( "Error opening file %s! closing...\n", fileName.c_str() );
-//			return EXIT_FAILURE;
-//		}
-//
-//		fprintf( fp, "%f\t%f", hdSum, umaSum );
-//		fclose( fp );
-//
-//		return EXIT_SUCCESS;
-//	}
-//
-//	return EXIT_FAILURE;
-//}

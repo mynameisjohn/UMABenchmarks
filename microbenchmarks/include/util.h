@@ -1,10 +1,12 @@
 #pragma once
 
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <string>
+
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
-#include <string>
+
 class CudaStopWatch
 {
 	std::string name;
@@ -63,3 +65,10 @@ bool contains( int3 s, int e )
 
 __global__
 void inc( float * data, int N );
+
+void makeData( float * data, uint32_t N, bool normalize = false );
+void incData( float * data, uint32_t N );
+void incSubset( float * data, uint32_t N, int3 S);
+float touchData( float * data, uint32_t N );
+float touchSubset( float * data, uint32_t N, int3 S );
+int3 getRandomSubset( uint32_t N );

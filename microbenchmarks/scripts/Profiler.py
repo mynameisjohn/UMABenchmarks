@@ -105,30 +105,31 @@ class Profiler:
         self.__accum = ProfileData(0,0,0,0,0)
         self.__counter = 0
     def Execute(self, ExeName):
-        if (system() == 'Windows'):
-            ExeName += '.exe'
-
         # nvprof will make this output file
         profDataFile = self.ProgName + '_' + str(self.ProbSize) + '.prof'
         
-        # format nvprof command
-        nvprofCmd = ['nvprof']
-        nvprofCmd += ['--profile-api-trace', 'none']
-        nvprofCmd += ['--log-file', profDataFile]
-        nvprofCmd += ['--profile-from-start-off']
-        nvprofCmd += [ExeName]
-        nvprofCmd += [self.ProgName]
-        nvprofCmd += ['profile']
-        nvprofCmd += [self.ProbSize]
-        nvprofCmd += [1]
-        nvprofCmd += [self.NumIt]
-        nvprofCmd += [self.Pattern]
-        nvprofCmd = [str(x) for x in nvprofCmd]
+        if ExeName is not 'None':
+            if (system() == 'Windows'):
+                ExeName += '.exe'
+
+            # format nvprof command
+            nvprofCmd = ['nvprof']
+            nvprofCmd += ['--profile-api-trace', 'none']
+            nvprofCmd += ['--log-file', profDataFile]
+            nvprofCmd += ['--profile-from-start-off']
+            nvprofCmd += [ExeName]
+            nvprofCmd += [self.ProgName]
+            nvprofCmd += ['profile']
+            nvprofCmd += [self.ProbSize]
+            nvprofCmd += [1]
+            nvprofCmd += [self.NumIt]
+            nvprofCmd += [self.Pattern]
+            nvprofCmd = [str(x) for x in nvprofCmd]
         
-        # run nvprof, get data, add to list
-        ret = sp.call(nvprofCmd, shell = (system() == 'Windows'))
-        if (ret != 0):
-            return None
+            # run nvprof, get data, add to list
+            ret = sp.call(nvprofCmd, shell = (system() == 'Windows'))
+            if (ret != 0):
+                return None
             
         # Add to averager and return data object
         pd = ProfileData(profDataFile)

@@ -17,18 +17,12 @@ float SGACFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 	cudaEventCreate( &stop );
 
 	// Determine random subset
-	int3 subset;
-	subset.x = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
-	subset.y = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
-	subset.z = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
+	int3 subset = getRandomSubset( N );
 
 	// Allocate data
 	size_t size = sizeof( float )*N;
 	float *d_Data( 0 );
 	cudaMallocManaged( (void **) &d_Data, size );
-
-	// Set input to zero
-	memset( d_Data, 0, size );
 
 	// Get max occupancy values
 	LaunchParams occ = GetBestOccupancy( (void *) subset_G, N );
@@ -36,21 +30,26 @@ float SGACFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 	// Start timing
 	cudaEventRecord( start );
 
+	// Make random input between 0 and N
+	makeData( d_Data, N );
+
 	// Copy to device and back, then touch everything on host
 	for ( int i = 0; i<nIt; i++ )
 	{
 		subset_G << < occ.numBlocks, occ.numThreads >> >( d_Data, N, subset );
 		cudaDeviceSynchronize();
-		for ( int j = 0; j<N; j++ )
-			d_Data[j]++;
-	}
+		touchData( d_Data, N );
 
-	// Free
-	cudaFree( d_Data );
+		// reset subset
+		subset = getRandomSubset( N );
+	}
 
 	// Stop timing
 	cudaEventRecord( stop );
 	cudaEventSynchronize( stop );
+
+	// Free
+	cudaFree( d_Data );
 
 	// Get elapsed time
 	cudaEventElapsedTime( &timeTaken, start, stop );
@@ -67,10 +66,7 @@ float SGACFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 	cudaEventCreate( &stop );
 
 	// Determine random subset
-	int3 subset;
-	subset.x = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
-	subset.y = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
-	subset.z = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
+	int3 subset = getRandomSubset( N );
 
 	// Allocate data
 	size_t size = sizeof( float )*N;
@@ -81,11 +77,11 @@ float SGACFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 	// Get max occupancy values
 	LaunchParams occ = GetBestOccupancy( (void *) subset_G, N );
 
-	// Set input to zero
-	memset( h_Data, 0, size );
-
 	// Start timing
 	cudaEventRecord( start );
+
+	// Create random data between 0 and N
+	makeData( h_Data, N );
 
 	// Copy to device and back, then touch everything on host
 	for ( int i = 0; i<nIt; i++ )
@@ -93,17 +89,19 @@ float SGACFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 		cudaMemcpy( d_Data, h_Data, size, cudaMemcpyHostToDevice );
 		subset_G << <occ.numBlocks, occ.numThreads >> >( d_Data, N, subset );
 		cudaMemcpy( h_Data, d_Data, size, cudaMemcpyDeviceToHost );
-		for ( int j = 0; j<N; j++ )
-			h_Data[j]++;
-	}
+		touchData( h_Data, N );
 
-	// Free
-	free( h_Data );
-	cudaFree( d_Data );
+		// reset subset
+		subset = getRandomSubset( N );
+	}
 
 	// Stop timing
 	cudaEventRecord( stop );
 	cudaEventSynchronize( stop );
+
+	// Free
+	free( h_Data );
+	cudaFree( d_Data );
 
 	// Get elapsed time
 	cudaEventElapsedTime( &timeTaken, start, stop );

@@ -13,10 +13,7 @@ float AGSCFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 	cudaEventCreate( &stop );
 
 	// Create random subset
-	int3 subset;
-	subset.x = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
-	subset.y = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
-	subset.z = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
+	int3 subset = getRandomSubset( N );
 
 	// Allocate data
 	size_t size = sizeof( float ) * N;
@@ -29,14 +26,19 @@ float AGSCFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 	// Start timing
 	cudaEventRecord( start );
 
+	// Make random data between 0 and N
+	makeData( d_Data, N );
+
 	// Run kernel, copy back to host, only touch subset on CPU
 	for ( int i = 0; i < nIt; i++ )
 	{
 		inc << < occ.numBlocks, occ.numThreads >> >( d_Data, N );
 		cudaDeviceSynchronize();
-		for ( int j = 0; j < N; j++ )
-			if ( contains( subset, j ) )
-				d_Data[j]++;
+
+		touchSubset( d_Data, N, subset );
+
+		// reset subset
+		subset = getRandomSubset( N );
 	}
 
 	// Stop timing
@@ -61,10 +63,7 @@ float AGSCFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 	cudaEventCreate( &stop );
 
 	// Create random subset
-	int3 subset;
-	subset.x = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
-	subset.y = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
-	subset.z = (int) ( ( (float) rand() / (float) RAND_MAX ) * N );
+	int3 subset = getRandomSubset( N );
 
 	// Allocate data
 	size_t size = sizeof( float ) * N;
@@ -78,15 +77,20 @@ float AGSCFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 	// Start timing
 	cudaEventRecord( start );
 
+	// Make random input between 0 and N
+	makeData( h_Data, N );
+
 	// Run kernel, copy back to host, only touch subset on CPU
 	for ( int i = 0; i < nIt; i++ )
 	{
 		cudaMemcpy( d_Data, h_Data, size, cudaMemcpyHostToDevice );
 		inc << < occ.numBlocks, occ.numThreads >> >( d_Data, N );
 		cudaMemcpy( h_Data, d_Data, size, cudaMemcpyDeviceToHost );
-		for ( int j = 0; j < N; j++ )
-			if ( contains( subset, j ) )
-				h_Data[j]++;
+
+		touchSubset( h_Data, N, subset );
+
+		// reset subset
+		subset = getRandomSubset( N );
 	}
 
 	// Stop timing

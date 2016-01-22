@@ -4,6 +4,8 @@ from Profiler import Profiler
 from Benchmarker import Benchmarker
 import DataPlot
 
+
+
 RunTypes = {
     'bm',
     'p'
@@ -21,7 +23,7 @@ Microbenchmarks = {
 
 # set up argparse
 parser = ArgumentParser(description = "Use this script to automate the microbenchmarks")
-parser.add_argument('-e', metavar='ExeName', type=str, nargs=1)
+parser.add_argument('-e', metavar='ExeName', type=str, nargs=1, default=['None'])
 parser.add_argument('-p', metavar='Prog', type=str, nargs='+')
 parser.add_argument('-t', metavar='Type', type=str, nargs='+')
 parser.add_argument('-N', metavar='ProblemSize', type=int, nargs='+')
