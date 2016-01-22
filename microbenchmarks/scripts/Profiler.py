@@ -129,7 +129,11 @@ class Profiler:
             # run nvprof, get data, add to list
             ret = sp.call(nvprofCmd, shell = (system() == 'Windows'))
             if (ret != 0):
+                print('Error profiling call: ') + str(bmCmd)
                 return None
+            else:
+                print('Successfully profiled program {}, N = {}'.format(self.ProgName, self.ProbSize))
+        
             
         # Add to averager and return data object
         pd = ProfileData(profDataFile)

@@ -1,5 +1,7 @@
-#import matplotlib
-#matplotlib.use('Agg')
+from platform import system
+if system() is not 'Windows':
+    import matplotlib
+    matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
 import numpy as np
