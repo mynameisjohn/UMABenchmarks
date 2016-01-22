@@ -55,20 +55,24 @@ class Benchmarker:
         self.__counter = 0
     # This can be called multiple times, no state is remembered
     def Execute(self, ExeName):
-        # format the benchmark command
-        bmCmd = [ExeName]
-        bmCmd += [self.ProgName]
-        bmCmd += ['benchmark']
-        bmCmd += [self.ProbSize]
-        bmCmd += [1]
-        bmCmd += [self.NumIt]
-        bmCmd += [self.TestCount]
-        bmCmd = [str(x) for x in bmCmd]
+        if ExeName is not 'None':
+            # format the benchmark command
+            bmCmd = [ExeName]
+            bmCmd += [self.ProgName]
+            bmCmd += ['benchmark']
+            bmCmd += [self.ProbSize]
+            bmCmd += [1]
+            bmCmd += [self.NumIt]
+            bmCmd += [self.TestCount]
+            bmCmd = [str(x) for x in bmCmd]
 
-        # Run the benchmarks
-        ret = sp.call(bmCmd, shell = (system() == 'Windows'))
-        if (ret != 0):
-            return None
+            # Run the benchmarks
+            ret = sp.call(bmCmd, shell = (system() == 'Windows'))
+            if (ret != 0):
+                print('Error benchmarking call: ') + str(bmCmd)
+                return None
+            else:
+                print('Successfully benchmarked program {}, N = {}'.format(self.ProgName, self.ProbSize))
         
         # Get output file, return data
         outFile = self.ProgName + '_' + str(self.ProbSize) + '.txt'
