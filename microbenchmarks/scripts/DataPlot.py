@@ -33,7 +33,7 @@ def MakeBenchmarkPlots(dBenchmarkers, filename = 'bm.pdf'):
 
     # best I could do with this
     fig = plt.figure()
-    ax = fig.add_axes([0.1, 0.1, 0.65, 0.8])
+    ax = fig.add_axes([0.1, 0.1, 0.58, 0.8])
 
     marker = itertools.cycle(( '+', '.', 'o', '*'))
     for bmd, name in zip(BMData.values(), Names):
@@ -45,6 +45,9 @@ def MakeBenchmarkPlots(dBenchmarkers, filename = 'bm.pdf'):
     plt.title('Normalized runtimes of UMA kernels')
     plt.xlabel('Problem Size')
     plt.ylabel('Normalized Runtime')
+
+    # add a line at y=1
+    ax.axhline(y=1, c='k', label='Normalization\n Line', ls='--')
     
     ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
 
