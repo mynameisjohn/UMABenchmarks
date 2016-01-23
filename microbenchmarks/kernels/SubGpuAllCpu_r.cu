@@ -76,7 +76,7 @@ float SGACRFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 	float thresh = (float) rand() / (float) RAND_MAX;
 
 	// Get max occupancy values
-	LaunchParams occ = GetBestOccupancy( subset_G_Rand, N );
+	LaunchParams occ = GetBestOccupancy( (void *)subset_G_Rand, N );
 
 	// Allocate and create data
 	float * h_In( 0 ), *h_Out( 0 ), *d_In( 0 ), *d_Out( 0 );

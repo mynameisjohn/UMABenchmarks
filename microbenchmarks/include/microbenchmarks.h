@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string>
 #include <cuda_runtime.h>
+#include "CpuTimer.h"
 
 // More useful for benchmarking than anything else
 //int runRelax( int argc, char ** argv );
