@@ -1,0 +1,10 @@
+==2764== NVPROF is profiling process 2764, command: ../build/MicroBenchmarks SGACR profile 2048 1 100 HD
+==2764== Profiling application: ../build/MicroBenchmarks SGACR profile 2048 1 100 HD
+==2764== Profiling result:
+Time(%)      Time     Calls       Avg       Min       Max  Name
+ 40.96%  1.0141ms       200  5.0700us  2.5520us  15.626us  [CUDA memcpy HtoD]
+ 37.45%  927.16us       200  4.6350us  2.4470us  14.531us  [CUDA memcpy DtoH]
+ 21.60%  534.80us       100  5.3480us  2.6560us  16.823us  subset_G_Rand(float*, float*, int, float)
+
+==2764== API calls:
+No API activities were profiled.

@@ -1,0 +1,10 @@
+==2781== NVPROF is profiling process 2781, command: ../build/MicroBenchmarks SGAC profile 2048 1 100 HD
+==2781== Profiling application: ../build/MicroBenchmarks SGAC profile 2048 1 100 HD
+==2781== Profiling result:
+Time(%)      Time     Calls       Avg       Min       Max  Name
+ 34.59%  635.54us       100  6.3550us  3.0740us  16.197us  [CUDA memcpy HtoD]
+ 33.18%  609.70us       100  6.0960us  2.9680us  15.625us  subset_G(float*, int, int3)
+ 32.23%  592.10us       100  5.9200us  3.0210us  14.531us  [CUDA memcpy DtoH]
+
+==2781== API calls:
+No API activities were profiled.

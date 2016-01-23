@@ -1,0 +1,10 @@
+==2797== NVPROF is profiling process 2797, command: ../build/MicroBenchmarks AGSC profile 2048 1 100 HD
+==2797== Profiling application: ../build/MicroBenchmarks AGSC profile 2048 1 100 HD
+==2797== Profiling result:
+Time(%)      Time     Calls       Avg       Min       Max  Name
+ 33.83%  764.23us       100  7.6420us  5.1570us  15.573us  [CUDA memcpy HtoD]
+ 33.80%  763.54us       100  7.6350us  5.2080us  9.4280us  inc(float*, int)
+ 32.37%  731.36us       100  7.3130us  4.7390us  9.7390us  [CUDA memcpy DtoH]
+
+==2797== API calls:
+No API activities were profiled.

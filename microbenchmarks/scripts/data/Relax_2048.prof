@@ -1,0 +1,11 @@
+==2748== NVPROF is profiling process 2748, command: ../build/MicroBenchmarks Relax profile 2048 1 100 HD
+==2748== Profiling application: ../build/MicroBenchmarks Relax profile 2048 1 100 HD
+==2748== Profiling result:
+Time(%)      Time     Calls       Avg       Min       Max  Name
+ 32.27%  1.3419ms       200  6.7090us  2.5520us  16.301us  [CUDA memcpy HtoD]
+ 30.17%  1.2545ms       200  6.2720us  2.4480us  14.687us  [CUDA memcpy DtoH]
+ 19.21%  799.01us       100  7.9900us  2.9680us  22.761us  gsRelax_Laplacian1D_even(float*, float*, unsigned int)
+ 18.36%  763.44us       100  7.6340us  2.9160us  19.219us  gsRelax_Laplacian1D_odd(float*, float*, unsigned int)
+
+==2748== API calls:
+No API activities were profiled.
