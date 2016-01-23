@@ -7,10 +7,7 @@
 float AGSCFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 {
 	// Create timing objects, do not start
-	float timeTaken( 0 );
-	cudaEvent_t start, stop;
-	cudaEventCreate( &start );
-	cudaEventCreate( &stop );
+	CpuTimer T;
 
 	// Create random subset
 	int3 subset = getRandomSubset( N );
@@ -24,7 +21,7 @@ float AGSCFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 	LaunchParams occ = GetBestOccupancy( (void *)inc, N );
 
 	// Start timing
-	cudaEventRecord( start );
+	T.Start();
 
 	// Make random data between 0 and N
 	makeData( d_Data, N );
@@ -41,15 +38,12 @@ float AGSCFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 		subset = getRandomSubset( N );
 	}
 
-	// Stop timing
-	cudaEventRecord( stop );
-	cudaEventSynchronize( stop );
+	// Get elapsed time
+	cudaThreadSynchronize();
+	float timeTaken = T.Elapsed();
 
 	// Free
 	cudaFree( d_Data );
-
-	// Get elapsed time
-	cudaEventElapsedTime( &timeTaken, start, stop );
 
 	return timeTaken;
 }
@@ -57,10 +51,7 @@ float AGSCFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 float AGSCFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 {
 	// Create timing objects, do not start
-	float timeTaken( 0 );
-	cudaEvent_t start, stop;
-	cudaEventCreate( &start );
-	cudaEventCreate( &stop );
+	CpuTimer T;
 
 	// Create random subset
 	int3 subset = getRandomSubset( N );
@@ -75,7 +66,7 @@ float AGSCFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 	LaunchParams occ = GetBestOccupancy( (void *) inc, N );
 
 	// Start timing
-	cudaEventRecord( start );
+	T.Start();
 
 	// Make random input between 0 and N
 	makeData( h_Data, N );
@@ -93,16 +84,13 @@ float AGSCFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 		subset = getRandomSubset( N );
 	}
 
-	// Stop timing
-	cudaEventRecord( stop );
-	cudaEventSynchronize( stop );
+	// Get elapsed time
+	cudaThreadSynchronize();
+	float timeTaken = T.Elapsed();
 
 	// Free
 	free( h_Data );
 	cudaFree( d_Data );
-
-	// Get elapsed time
-	cudaEventElapsedTime( &timeTaken, start, stop );
 
 	return timeTaken;
 }

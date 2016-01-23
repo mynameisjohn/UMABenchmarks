@@ -14,11 +14,7 @@ void subset_G_Rand( float * in, float * out, int N, float thresh )
 
 float SGACRFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 {
-	// Create timing objects, do not start
-	float timeTaken( 0 );
-	cudaEvent_t start, stop;
-	cudaEventCreate( &start );
-	cudaEventCreate( &stop );
+	CpuTimer T;
 
 	// data size
 	size_t size = sizeof( float ) * N;
@@ -35,7 +31,7 @@ float SGACRFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 	cudaMallocManaged( (void **) &d_Out, size );
 
 	// Start timing
-	cudaEventRecord( start );
+	T.Start();
 
 	// Make random input between 0 and 1
 	makeData( d_In, N, true );
@@ -57,12 +53,9 @@ float SGACRFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 		thresh = (float) rand() / (float) RAND_MAX;
 	}
 
-	// Stop Timing
-	cudaEventRecord( stop );
-	cudaEventSynchronize( stop );
-
 	// Get elapsed time
-	cudaEventElapsedTime( &timeTaken, start, stop );
+	cudaThreadSynchronize();
+	float timeTaken = T.Elapsed();
 
 	// Free
 	cudaFree( d_In );
@@ -74,10 +67,7 @@ float SGACRFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 float SGACRFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 {
 	// Create timing objects, do not start
-	float timeTaken( 0 );
-	cudaEvent_t start, stop;
-	cudaEventCreate( &start );
-	cudaEventCreate( &stop );
+	CpuTimer T;
 
 	// data size
 	size_t size = sizeof( float ) * N;
@@ -86,7 +76,7 @@ float SGACRFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 	float thresh = (float) rand() / (float) RAND_MAX;
 
 	// Get max occupancy values
-	LaunchParams occ = GetBestOccupancy( (void *)subset_G_Rand, N );
+	LaunchParams occ = GetBestOccupancy( subset_G_Rand, N );
 
 	// Allocate and create data
 	float * h_In( 0 ), *h_Out( 0 ), *d_In( 0 ), *d_Out( 0 );
@@ -96,7 +86,7 @@ float SGACRFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 	cudaMalloc( (void **) &d_Out, size );
 
 	// Start timing
-	cudaEventRecord( start );
+	T.Start();
 
 	// Make random input between 0 and 1
 	makeData( h_In, N, true );
@@ -118,12 +108,10 @@ float SGACRFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 		thresh = (float) rand() / (float) RAND_MAX;
 	}
 
-	// Stop Timing
-	cudaEventRecord( stop );
-	cudaEventSynchronize( stop );
 
 	// Get elapsed time
-	cudaEventElapsedTime( &timeTaken, start, stop );
+	cudaThreadSynchronize();
+	float timeTaken = T.Elapsed();
 
 	// Free
 	free( h_In );

@@ -4,10 +4,7 @@
 float AGACFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 {
 	// Create timing objects, do not start
-	float timeTaken( 0 );
-	cudaEvent_t start, stop;
-	cudaEventCreate( &start );
-	cudaEventCreate( &stop );
+	CpuTimer T;
 
 	// Allocate data
 	size_t size = sizeof( float ) * N;
@@ -18,7 +15,7 @@ float AGACFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 	LaunchParams occ = GetBestOccupancy( (void *)inc, N );
 
 	// Start timing
-	cudaEventRecord( start );
+	T.Start();
 
 	// Make random data between 0 and N
 	makeData( d_Data, N );
@@ -31,15 +28,12 @@ float AGACFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 		incData( d_Data, N );
 	}
 
-	// Stop timing
-	cudaEventRecord( stop );
-	cudaEventSynchronize( stop );
+	// Get elapsed time
+	cudaThreadSynchronize();
+	float timeTaken = T.Elapsed();
 
 	// Free
 	cudaFree( d_Data );
-
-	// Get elapsed time
-	cudaEventElapsedTime( &timeTaken, start, stop );
 
 	return timeTaken;
 }
@@ -47,10 +41,7 @@ float AGACFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 float AGACFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 {
 	// Create timing objects, do not start
-	float timeTaken( 0 );
-	cudaEvent_t start, stop;
-	cudaEventCreate( &start );
-	cudaEventCreate( &stop );
+	CpuTimer T;
 
 	// Allocate data
 	size_t size = sizeof( float ) * N;
@@ -62,7 +53,7 @@ float AGACFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 	LaunchParams occ = GetBestOccupancy( (void *) inc, N );
 
 	// Start timing
-	cudaEventRecord( start );
+	T.Start();
 
 	// Make random data between 0 and N
 	makeData( h_Data, N );
@@ -76,16 +67,13 @@ float AGACFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 		incData( h_Data, N );
 	}
 
-	// Stop timing
-	cudaEventRecord( stop );
-	cudaEventSynchronize( stop );
+	// Get elapsed time
+	cudaThreadSynchronize();
+	float timeTaken = T.Elapsed();
 
 	// Free
 	free( h_Data );
 	cudaFree( d_Data );
-
-	// Get elapsed time
-	cudaEventElapsedTime( &timeTaken, start, stop );
 
 	return timeTaken;
 }

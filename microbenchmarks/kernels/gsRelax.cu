@@ -108,10 +108,7 @@ inline float getResidueSq( float * in, float * out, uint32_t N )
 float RelaxFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 {
 	// Create timing objects, do not start
-	float timeTaken( 0 );
-	cudaEvent_t start, stop;
-	cudaEventCreate( &start );
-	cudaEventCreate( &stop );
+	CpuTimer T;
 
 	//Just a stupid pad
 	dim = ( dim % 2 ? 1 : 2 );
@@ -126,7 +123,7 @@ float RelaxFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 	LaunchParams occ = GetBestOccupancy( dim == 2 ? (void *) gsRelax_Laplacian1D_even : (void *) gsRelax_Laplacian2D_even, N );
 
 	// Start timing
-	cudaEventRecord( start );
+	T.Start();	
 
 	// Create random data
 	makeData( d_Data_A, N, true );
@@ -163,12 +160,9 @@ float RelaxFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 		}
 	}
 
-	// Stop timing
-	cudaEventRecord( stop );
-	cudaEventSynchronize( stop );
-
 	// Get elapsed time
-	cudaEventElapsedTime( &timeTaken, start, stop );
+	cudaThreadSynchronize();
+	float timeTaken = T.Elapsed();
 
 	// Free data
 	cudaFree( d_Data_A );
@@ -180,10 +174,7 @@ float RelaxFunc::runUMA( uint32_t N, uint32_t dim, uint32_t nIt )
 float RelaxFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 {
 	// Create timing objects, do not start
-	float timeTaken( 0 );
-	cudaEvent_t start, stop;
-	cudaEventCreate( &start );
-	cudaEventCreate( &stop );
+	CpuTimer T;
 
 	//Just a stupid pad
 	dim = ( dim % 2 ? 1 : 2 );
@@ -200,7 +191,7 @@ float RelaxFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 	LaunchParams occ = GetBestOccupancy( dim == 2 ? (void *) gsRelax_Laplacian1D_even : (void *) gsRelax_Laplacian2D_even, N );
 
 	// Start timing
-	cudaEventRecord( start );
+	T.Start();
 
 	// Make random data between 0 and 1
 	makeData( h_Data_A, N, true );
@@ -246,12 +237,9 @@ float RelaxFunc::runHD( uint32_t N, uint32_t dim, uint32_t nIt )
 		}
 	}
 
-	// Stop timing
-	cudaEventRecord( stop );
-	cudaEventSynchronize( stop );
-
 	// Get elapsed time
-	cudaEventElapsedTime( &timeTaken, start, stop );
+	cudaThreadSynchronize();
+	float timeTaken = T.Elapsed();
 
 	// Free data
 	free( h_Data_A );
