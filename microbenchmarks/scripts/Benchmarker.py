@@ -69,7 +69,7 @@ class Benchmarker:
             # Run the benchmarks
             ret = sp.call(bmCmd, shell = (system() == 'Windows'))
             if (ret != 0):
-                print('Error benchmarking call: ') + str(bmCmd)
+                print('Error benchmarking call: ' + str(bmCmd))
                 return None
             else:
                 print('Successfully benchmarked program {}, N = {}'.format(self.ProgName, self.ProbSize))

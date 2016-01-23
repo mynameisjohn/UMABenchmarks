@@ -17,8 +17,11 @@ def MakeBenchmarkPlots(dBenchmarkers, filename = 'bm.pdf'):
     BMData = dict()
     Names = None
     Indices = np.arange(len(dBenchmarkers))
-    Sizes = list(dBenchmarkers.keys())
-    for progs in dBenchmarkers.values():
+    Sizes = []
+
+    # Iterate through the dict in order of size
+    for size, progs in sorted(dBenchmarkers.items()):
+        Sizes.append(size)
         if Names == None:
             Names = list(progs.keys())
         for bm in progs.values():
@@ -28,14 +31,22 @@ def MakeBenchmarkPlots(dBenchmarkers, filename = 'bm.pdf'):
             nrm = bdAvg.UMATime / bdAvg.HDTime
             BMData[bm.ProgName].append(nrm)
 
+    # best I could do with this
+    fig = plt.figure()
+    ax = fig.add_axes([0.1, 0.1, 0.65, 0.8])
+
     marker = itertools.cycle(( '+', '.', 'o', '*'))
     for bmd, name in zip(BMData.values(), Names):
-        plt.plot(Indices, bmd, label=name, marker = next(marker))
+        ax.plot(Indices, bmd, label=name, marker = next(marker))
 
     plt.yticks(np.arange(0, 2, 0.1))
     plt.xticks(Indices, Sizes )
+
+    plt.title('Normalized runtimes of UMA kernels')
+    plt.xlabel('Problem Size')
+    plt.ylabel('Normalized Runtime')
     
-    plt.legend( loc=1, bbox_to_anchor = (1.05,1), mode='expand' )
+    ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
 
     if g_ShowPlots is True:
         plt.show()
