@@ -77,6 +77,10 @@ def MakeProfilerPlot(dProfilers, filename = 'prof.pdf'):
     # convert this to a numpy array
     Indices = np.float32(Indices)
 
+    fig = plt.figure()
+    ax = fig.add_axes([0.1, 0.1, 0.6, 0.8])
+  
+
     # create "bottom" arrays
     b1 = np.add(np.float32(HtoD),np.float32(DtoH))
     b2 = np.add(np.float32(b1), np.float32(Memset))
@@ -84,16 +88,23 @@ def MakeProfilerPlot(dProfilers, filename = 'prof.pdf'):
 
     # Create plots
     width = 0.3
-    p1 = plt.bar(Indices, HtoD, width, color='#ff0000')
-    p2 = plt.bar(Indices, DtoH, width, bottom=HtoD, color='#00ff00')
-    p3 = plt.bar(Indices, Memset, width, bottom=b1, color='#0000ff')
-    p4 = plt.bar(Indices, API, width, bottom=b2, color='#000000')
-    p5 = plt.bar(Indices, Kernel, width, bottom=b3, color='#f0f0f0')
+    pad = 0.1
+    p1 = ax.bar(Indices + pad, HtoD, width, color='#ff0000')
+    p2 = ax.bar(Indices + pad, DtoH, width, bottom=HtoD, color='#00ff00')
+    p3 = ax.bar(Indices + pad, Memset, width, bottom=b1, color='#0000ff')
+    p4 = ax.bar(Indices + pad, API, width, bottom=b2, color='#000000')
+    p5 = ax.bar(Indices + pad, Kernel, width, bottom=b3, color='#f0f0f0')
 
-    plt.xticks(Indices + width / 2., Names )
+    plt.xticks(Indices + width, Names )
     plt.yticks(np.arange(0,135,10))
-    plt.legend( (p1[0], p2[0], p3[0], p4[0], p5[0]), ('HtoD', 'DtoH', 'Memset', 'API', 'Kernel') )
 
+    plt.title('Time Allocation during Execution')
+    plt.xlabel('Kernel')
+    plt.ylabel('% of Execution Time')
+
+    ax.legend( (p1[0], p2[0], p3[0], p4[0], p5[0]), ('HtoD', 'DtoH', 'Memset', 'API', 'Kernel'), 
+              bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0. )
+    
     if g_ShowPlots is True:
         plt.show()
 
